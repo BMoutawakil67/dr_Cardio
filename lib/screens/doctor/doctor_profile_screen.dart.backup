@@ -1,0 +1,613 @@
+import 'package:flutter/material.dart';
+import 'package:dr_cardio/config/app_theme.dart';
+
+class DoctorProfileScreen extends StatelessWidget {
+  const DoctorProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mon Profil'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => _editProfile(context),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header avec photo et nom
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryBlue,
+                    AppTheme.primaryBlue.withValues(alpha: 0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 3),
+                      color: Colors.white,
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      size: 50,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Dr. Mamadou KOUASSI',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Cardiologue',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      '15 ans d\'expérience',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // QR Code Section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.qr_code_2, color: AppTheme.primaryBlue),
+                          SizedBox(width: 8),
+                          Text(
+                            'Mon QR Code',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: 200,
+                        height: 200,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.greyLight,
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.qr_code_2,
+                              size: 120,
+                              color: AppTheme.greyMedium.withValues(alpha: 0.5),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              '[QR Code]',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.greyMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Les patients peuvent scanner ce code\npour vous ajouter comme médecin traitant',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.greyMedium,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => _shareQRCode(context),
+                            icon: const Icon(Icons.share, size: 18),
+                            label: const Text('Partager'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => _downloadQRCode(context),
+                            icon: const Icon(Icons.download, size: 18),
+                            label: const Text('Télécharger'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Informations professionnelles
+            _buildSection(
+              title: '👨‍⚕️ Informations Professionnelles',
+              children: [
+                _buildInfoTile('Numéro d\'ordre', 'MD-2024-789456'),
+                _buildInfoTile('Spécialité', 'Cardiologie'),
+                _buildInfoTile('Email professionnel', 'dr.kouassi@cardio.com'),
+                _buildInfoTile('Téléphone', '+229 XX XX XX XX'),
+                _buildInfoTile('Établissement', 'Clinique du Cœur, Cotonou'),
+              ],
+            ),
+
+            // Horaires de consultation
+            _buildSection(
+              title: '🕐 Horaires de Consultation',
+              children: [
+                _buildScheduleTile('Lundi - Vendredi', '08:00 - 18:00'),
+                _buildScheduleTile('Samedi', '08:00 - 13:00'),
+                _buildScheduleTile('Dimanche', 'Fermé'),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => _editSchedule(context),
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Modifier les horaires'),
+                ),
+              ],
+            ),
+
+            // Statistiques
+            _buildSection(
+              title: '📊 Statistiques',
+              children: [
+                _buildStatCard('45', 'Patients actifs'),
+                _buildStatCard('247', 'Consultations ce mois'),
+                _buildStatCard('4.8', 'Note moyenne'),
+              ],
+            ),
+
+            // Paramètres du compte
+            _buildSection(
+              title: '⚙️ Paramètres du Compte',
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: const Text('Notifications'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openNotificationSettings(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.security),
+                  title: const Text('Sécurité'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openSecuritySettings(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.language),
+                  title: const Text('Langue'),
+                  trailing: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Français', style: TextStyle(color: AppTheme.greyMedium)),
+                      SizedBox(width: 4),
+                      Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () => _changeLanguage(context),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.help_outline),
+                  title: const Text('Aide & Support'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openSupport(context),
+                ),
+              ],
+            ),
+
+            // Abonnement
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Card(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.workspace_premium, color: AppTheme.primaryBlue),
+                          SizedBox(width: 8),
+                          Text(
+                            'Abonnement Professionnel',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Plan Solo'),
+                      const Text(
+                        'Renouvelé le 15 décembre 2024',
+                        style: TextStyle(fontSize: 12, color: AppTheme.greyMedium),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () => _upgradeSubscription(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Passer au Plan Clinique'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Bouton déconnexion
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: OutlinedButton.icon(
+                onPressed: () => _logout(context),
+                icon: const Icon(Icons.logout, color: AppTheme.secondaryRed),
+                label: const Text(
+                  'Se déconnecter',
+                  style: TextStyle(color: AppTheme.secondaryRed),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.secondaryRed),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textColor,
+              ),
+            ),
+          ),
+          Card(
+            child: Column(
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(String label, String value) {
+    return ListTile(
+      dense: true,
+      title: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppTheme.greyMedium,
+        ),
+      ),
+      subtitle: Text(
+        value,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: AppTheme.textColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleTile(String day, String hours) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(day),
+          Text(
+            hours,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String value, String label) {
+    return Expanded(
+      child: Card(
+        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryBlue,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _editProfile(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier le profil'),
+        content: const Text('Cette fonctionnalité vous permettra de modifier vos informations professionnelles.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _shareQRCode(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('QR Code partagé'),
+        backgroundColor: AppTheme.successGreen,
+      ),
+    );
+  }
+
+  void _downloadQRCode(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('QR Code téléchargé'),
+        backgroundColor: AppTheme.successGreen,
+      ),
+    );
+  }
+
+  void _editSchedule(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier les horaires'),
+        content: const Text('Vous pouvez configurer vos disponibilités pour les consultations.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openNotificationSettings(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Paramètres de notifications')),
+    );
+  }
+
+  void _openSecuritySettings(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Paramètres de sécurité')),
+    );
+  }
+
+  void _changeLanguage(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choisir la langue'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile(
+              value: 'fr',
+              groupValue: 'fr',
+              onChanged: (value) => Navigator.pop(context),
+              title: const Text('Français'),
+            ),
+            RadioListTile(
+              value: 'en',
+              groupValue: 'fr',
+              onChanged: (value) => Navigator.pop(context),
+              title: const Text('English'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openSupport(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aide & Support'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('📧 Email: support@docteurcardio.com'),
+            SizedBox(height: 8),
+            Text('📞 Téléphone: +229 XX XX XX XX'),
+            SizedBox(height: 8),
+            Text('🕐 Lun-Ven: 8h-18h'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _upgradeSubscription(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Plan Clinique'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Avantages du Plan Clinique:'),
+            SizedBox(height: 12),
+            Text('✓ Nombre illimité de patients'),
+            Text('✓ Multi-praticiens'),
+            Text('✓ Statistiques avancées'),
+            Text('✓ Export de données'),
+            Text('✓ Support prioritaire'),
+            SizedBox(height: 16),
+            Text(
+              '25,000 FCFA/mois',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Redirection vers le paiement...'),
+                  backgroundColor: AppTheme.primaryBlue,
+                ),
+              );
+            },
+            child: const Text('Souscrire'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _logout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppTheme.secondaryRed),
+            child: const Text('Se déconnecter'),
+          ),
+        ],
+      ),
+    );
+  }
+}

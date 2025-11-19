@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
+import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:dr_cardio/config/app_theme.dart';
 
 class PatientLoginScreen extends StatefulWidget {
   const PatientLoginScreen({super.key});
@@ -20,6 +22,69 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final repository = PatientRepository();
+      final patients = await repository.getAllPatients();
+
+      // Find patient by email or phone
+      final email = _emailController.text.trim();
+      final patient = patients.firstWhere(
+        (p) => p.email.toLowerCase() == email.toLowerCase() ||
+               p.phoneNumber == email,
+        orElse: () => throw Exception('Aucun compte trouvé avec cet email/téléphone'),
+      );
+
+      // TODO: Implement proper password verification
+      // For now, we just check if the patient exists
+      // In a real app, you would hash passwords and verify them properly
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Bienvenue ${patient.firstName}!'),
+          backgroundColor: AppTheme.successGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Navigate to dashboard
+      Navigator.pushReplacementNamed(context, AppRoutes.patientDashboard);
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppTheme.errorRed,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -137,15 +202,7 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
 
                 // Bouton Se connecter
                 ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // TODO: Implémenter la connexion
-                      Navigator.pushReplacementNamed(
-                        context,
-                        AppRoutes.patientDashboard,
-                      );
-                    }
-                  },
+                  onPressed: _handleLogin,
                   child: const Text('SE CONNECTER'),
                 ),
                 const SizedBox(height: 24),

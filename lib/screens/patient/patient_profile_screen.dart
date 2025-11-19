@@ -6,6 +6,7 @@ import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
+import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   const PatientProfileScreen({super.key});
@@ -62,7 +63,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               child: Column(
                 children: [
                   // Photo de profil
-                  CircleAvatar(
+                  FadeInSlideUp(
+                    delay: 0,
+                    child: CircleAvatar(
                     radius: 50,
                     backgroundImage: patient.profileImageUrl != null
                         ? NetworkImage(patient.profileImageUrl!)
@@ -71,23 +74,35 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     child: patient.profileImageUrl == null
                         ? const Icon(Icons.person, size: 50, color: Colors.white)
                         : null,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    '${patient.firstName} ${patient.lastName}',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  FadeInSlideUp(
+                    delay: 200,
+                    child: Text(
+                      '${patient.firstName} ${patient.lastName}',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
                   ),
-                  Text(
-                    patient.email,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                  FadeInSlideUp(
+                    delay: 400,
+                    child: Text(
+                      patient.email,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                    ),
                   ),
                   const SizedBox(height: 32),
 
                   // Informations personnelles
-                  _SectionTitle(title: '📋 Informations personnelles'),
-                  Card(
+                  FadeInSlideUp(
+                    delay: 600,
+                    child: _SectionTitle(title: '📋 Informations personnelles'),
+                  ),
+                  FadeInSlideUp(
+                    delay: 800,
+                    child: Card(
                     child: Column(
                       children: [
                         _InfoTile(
@@ -102,12 +117,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         _InfoTile(label: '📞 Téléphone', value: patient.phoneNumber),
                       ],
                     ),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Mon cardiologue
-                  _SectionTitle(title: '👨‍⚕️ Mon cardiologue'),
-                  FutureBuilder<Doctor?>(
+                  FadeInSlideUp(
+                    delay: 1000,
+                    child: _SectionTitle(title: '👨‍⚕️ Mon cardiologue'),
+                  ),
+                  FadeInSlideUp(
+                    delay: 1200,
+                    child: FutureBuilder<Doctor?>(
                     future: _doctorFuture,
                     builder: (context, doctorSnapshot) {
                       if (doctorSnapshot.connectionState ==
@@ -204,12 +225,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         ),
                       );
                     },
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Abonnement
-                  _SectionTitle(title: '💳 Abonnement'),
-                  Card(
+                  FadeInSlideUp(
+                    delay: 1400,
+                    child: _SectionTitle(title: '💳 Abonnement'),
+                  ),
+                  FadeInSlideUp(
+                    delay: 1600,
+                    child: Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -264,12 +291,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         ],
                       ),
                     ),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Paramètres
-                  _SectionTitle(title: '⚙️ Paramètres'),
-                  Card(
+                  FadeInSlideUp(
+                    delay: 1800,
+                    child: _SectionTitle(title: '⚙️ Paramètres'),
+                  ),
+                  FadeInSlideUp(
+                    delay: 2000,
+                    child: Card(
                     child: Column(
                       children: [
                         ListTile(
@@ -315,12 +348,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         ),
                       ],
                     ),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Statistiques
-                  _SectionTitle(title: '📊 Mes statistiques'),
-                  Card(
+                  FadeInSlideUp(
+                    delay: 2200,
+                    child: _SectionTitle(title: '📊 Mes statistiques'),
+                  ),
+                  FadeInSlideUp(
+                    delay: 2400,
+                    child: Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -331,24 +370,33 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         ],
                       ),
                     ),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Actions
-                  ListTile(
+                  FadeInSlideUp(
+                    delay: 2600,
+                    child: ListTile(
                     leading: const Icon(Icons.help_outline),
                     title: const Text('Aide & Support'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {},
+                    ),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: const Text('CGU & Confidentialité'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
+                  FadeInSlideUp(
+                    delay: 2800,
+                    child: ListTile(
+                      leading: const Icon(Icons.description_outlined),
+                      title: const Text('CGU & Confidentialité'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {},
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
+                  FadeInSlideUp(
+                    delay: 3000,
+                    child: OutlinedButton.icon(
                     onPressed: () {
                       showDialog(
                         context: context,
@@ -384,6 +432,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.secondaryRed,
                       side: const BorderSide(color: AppTheme.secondaryRed),
+                    ),
                     ),
                   ),
                   const SizedBox(height: 32),

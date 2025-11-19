@@ -278,11 +278,14 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                 }
                 return null;
               },
+              ),
             ),
             const SizedBox(height: 16),
 
             // Téléphone
-            TextFormField(
+            FadeInSlideUp(
+              delay: 600,
+              child: TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(

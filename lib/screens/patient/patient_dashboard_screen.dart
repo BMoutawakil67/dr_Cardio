@@ -1,4 +1,4 @@
-'''import 'package:dr_cardio/models/medical_note.dart';
+import 'package:dr_cardio/models/medical_note.dart';
 import 'package:dr_cardio/models/patient.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';

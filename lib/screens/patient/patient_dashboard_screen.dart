@@ -2,6 +2,7 @@ import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
@@ -20,14 +21,24 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
 
   late Future<Patient?> _patientFuture;
   late Future<List<MedicalNote>> _medicalNotesFuture;
-  final String _patientId = 'patient-001'; // TODO: Replace with actual patient ID
 
   @override
   void initState() {
     super.initState();
-    _patientFuture = _patientRepository.getPatient(_patientId);
+    _loadData();
+  }
+
+  void _loadData() {
+    final patientId = AuthService().currentUserId ?? 'patient-001';
+    _patientFuture = _patientRepository.getPatient(patientId);
     _medicalNotesFuture =
-        _medicalNoteRepository.getMedicalNotesByPatient(_patientId);
+        _medicalNoteRepository.getMedicalNotesByPatient(patientId);
+  }
+
+  void _refreshData() {
+    setState(() {
+      _loadData();
+    });
   }
 
   @override

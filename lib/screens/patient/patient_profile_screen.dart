@@ -2,6 +2,7 @@ import 'package:dr_cardio/models/doctor_model.dart';
 import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/doctor_repository.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
@@ -20,12 +21,11 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   late Future<Patient?> _patientFuture;
   late Future<Doctor?> _doctorFuture;
 
-  final String _patientId = 'patient-001'; // TODO: Replace with actual patient ID
-
   @override
   void initState() {
     super.initState();
-    _patientFuture = _patientRepository.getPatient(_patientId);
+    final patientId = AuthService().currentUserId ?? 'patient-001';
+    _patientFuture = _patientRepository.getPatient(patientId);
     // TODO: Add doctor assignment logic
     // For now, using hardcoded doctor ID from mock data
     _doctorFuture = _doctorRepository.getDoctor('doctor-001');

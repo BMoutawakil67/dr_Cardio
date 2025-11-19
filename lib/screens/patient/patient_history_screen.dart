@@ -1,5 +1,6 @@
 import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
@@ -24,11 +25,13 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null && args.containsKey('patientId')) {
       _patientId = args['patientId'];
-      if (_patientId != null) {
-        _medicalNotesFuture = _medicalNoteRepository.getMedicalNotesByPatient(_patientId!);
-      } else {
-        _medicalNotesFuture = Future.value([]);
-      }
+    } else {
+      // Use logged in user ID as fallback
+      _patientId = AuthService().currentUserId;
+    }
+
+    if (_patientId != null) {
+      _medicalNotesFuture = _medicalNoteRepository.getMedicalNotesByPatient(_patientId!);
     } else {
       _medicalNotesFuture = Future.value([]);
     }

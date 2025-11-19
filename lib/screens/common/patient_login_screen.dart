@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 
 class PatientLoginScreen extends StatefulWidget {
   const PatientLoginScreen({super.key});
@@ -58,6 +59,9 @@ class _PatientLoginScreenState extends State<PatientLoginScreen> {
 
       // Close loading dialog
       Navigator.pop(context);
+
+      // Save logged in user
+      AuthService().login(patient.id, 'patient');
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

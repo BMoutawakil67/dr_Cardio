@@ -1,5 +1,6 @@
 import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 
@@ -16,7 +17,6 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
   final PatientRepository _patientRepository = PatientRepository();
 
   late Future<Patient?> _patientFuture;
-  final String _patientId = 'patient-001'; // TODO: Get from auth
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -29,7 +29,8 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _patientFuture = _patientRepository.getPatient(_patientId);
+    final patientId = AuthService().currentUserId ?? 'patient-001';
+    _patientFuture = _patientRepository.getPatient(patientId);
     _patientFuture.then((patient) {
       if (patient != null && mounted) {
         setState(() {

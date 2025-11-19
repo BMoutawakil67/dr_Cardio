@@ -155,14 +155,14 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Compte créé avec succès pour ${patient.firstName}!'),
+          content: Text('✅ Compte créé avec succès! Connectez-vous maintenant.'),
           backgroundColor: AppTheme.successGreen,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
         ),
       );
 
-      // Navigate to dashboard
-      Navigator.pushReplacementNamed(context, AppRoutes.patientDashboard);
+      // Navigate to login screen
+      Navigator.pushReplacementNamed(context, AppRoutes.patientLogin);
     } catch (e) {
       debugPrint('❌ Error creating account: $e');
 

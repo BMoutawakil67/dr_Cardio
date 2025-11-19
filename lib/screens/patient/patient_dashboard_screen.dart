@@ -6,6 +6,7 @@ import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 import 'package:intl/intl.dart';
 
 class PatientDashboardScreen extends StatefulWidget {
@@ -63,24 +64,29 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               Positioned(
                 right: 8,
                 top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.secondaryRed,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: const Text(
-                    '3', // TODO: Replace with dynamic notification count
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                child: PulseAnimation(
+                  duration: const Duration(seconds: 2),
+                  minScale: 0.95,
+                  maxScale: 1.05,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.secondaryRed,
+                      shape: BoxShape.circle,
                     ),
-                    textAlign: TextAlign.center,
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: const Text(
+                      '3', // TODO: Replace with dynamic notification count
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
@@ -120,7 +126,9 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Salutation
-                FutureBuilder<Patient?>(
+                FadeInSlideUp(
+                  delay: 0,
+                  child: FutureBuilder<Patient?>(
                   future: _patientFuture,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
@@ -134,9 +142,12 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                       style: Theme.of(context).textTheme.headlineMedium,
                     );
                   },
+                  ),
                 ),
                 const SizedBox(height: 4),
-                FutureBuilder<List<MedicalNote>>(
+                FadeInSlideUp(
+                  delay: 200,
+                  child: FutureBuilder<List<MedicalNote>>(
                   future: _medicalNotesFuture,
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
@@ -157,11 +168,14 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                           ),
                     );
                   },
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // Carte dernière mesure
-                FutureBuilder<List<MedicalNote>>(
+                FadeInSlideUp(
+                  delay: 400,
+                  child: FutureBuilder<List<MedicalNote>>(
                   future: _medicalNotesFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -172,16 +186,22 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                     }
                     return const _LastMeasureCard(); // Show empty state
                   },
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // Actions rapides
-                _SectionHeader(title: '⚡ Actions rapides'),
+                FadeInSlideUp(
+                  delay: 600,
+                  child: _SectionHeader(title: '⚡ Actions rapides'),
+                ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _QuickActionCard(
+                FadeInSlideUp(
+                  delay: 800,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _QuickActionCard(
                         icon: Icons.camera_alt_outlined,
                         label: 'Photo\nTension',
                         onTap: () {
@@ -201,15 +221,21 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                         },
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // Tendance
-                _SectionHeader(title: '📈 Tendance (7 jours)'),
+                FadeInSlideUp(
+                  delay: 1000,
+                  child: _SectionHeader(title: '📈 Tendance (7 jours)'),
+                ),
                 const SizedBox(height: 16),
-                _AnimatedCard(
-                  child: Padding(
+                FadeInSlideUp(
+                  delay: 1200,
+                  child: _AnimatedCard(
+                    child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
@@ -230,22 +256,29 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                         ),
                       ],
                     ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
                 // Messages
-                _MessagePreviewCard(),
+                FadeInSlideUp(
+                  delay: 1400,
+                  child: _MessagePreviewCard(),
+                ),
                 const SizedBox(height: 16),
 
                 // Prochain RDV
-                _AnimatedCard(
-                  child: ListTile(
+                FadeInSlideUp(
+                  delay: 1600,
+                  child: _AnimatedCard(
+                    child: ListTile(
                     leading: const Icon(Icons.calendar_today_outlined),
                     title: const Text('Prochain RDV: 05 Nov'),
                     subtitle: const Text('Téléconsultation 10h00'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {},
+                    ),
                   ),
                 ),
               ],
@@ -465,18 +498,9 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: TweenAnimationBuilder(
-        duration: const Duration(milliseconds: 200),
-        tween: Tween<double>(begin: 1.0, end: 1.0),
-        builder: (context, scale, child) {
-          return Transform.scale(
-            scale: scale,
-            child: child,
-          );
-        },
-        child: Card(
+    return PressableButton(
+      onPressed: onTap,
+      child: Card(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -485,11 +509,7 @@ class _QuickActionCard extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            onTapDown: (_) {},
-            child: Container(
+          child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -518,7 +538,6 @@ class _QuickActionCard extends StatelessWidget {
               ),
             ),
           ),
-        ),
       ),
     );
   }

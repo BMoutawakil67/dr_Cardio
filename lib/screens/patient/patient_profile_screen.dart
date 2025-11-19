@@ -476,19 +476,47 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       onTap: () async {
                         Navigator.pop(dialogContext);
 
-                        // TODO: Update patient's assigned doctor in database
-                        // For now, just reload the doctor
-                        setState(() {
-                          _doctorFuture = _doctorRepository.getDoctor(doctor.id);
-                        });
+                        // Get current patient
+                        final patientId = AuthService().currentUserId ?? 'patient-001';
+                        final currentPatient = await _patientRepository.getPatient(patientId);
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Cardiologue changé pour Dr. ${doctor.firstName} ${doctor.lastName}'),
-                              backgroundColor: AppTheme.successGreen,
-                            ),
+                        if (currentPatient != null) {
+                          // Update patient's assigned doctor
+                          final updatedPatient = currentPatient.copyWith(
+                            assignedDoctorId: doctor.id,
                           );
+
+                          // Save to database
+                          final success = await _patientRepository.updatePatient(updatedPatient);
+
+                          if (success) {
+                            // Reload the doctor future
+                            setState(() {
+                              _doctorFuture = _doctorRepository.getDoctor(doctor.id);
+                            });
+
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('✅ Cardiologue changé pour Dr. ${doctor.firstName} ${doctor.lastName}'),
+                                  backgroundColor: AppTheme.successGreen,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('❌ Erreur lors du changement de cardiologue'),
+                                  backgroundColor: AppTheme.errorRed,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            }
+                          }
                         }
                       },
                     );

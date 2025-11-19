@@ -31,6 +31,9 @@ class Patient {
   @HiveField(8)
   final String? profileImageUrl;
 
+  @HiveField(9)
+  final String? assignedDoctorId;
+
   Patient({
     required this.id,
     required this.firstName,
@@ -41,6 +44,7 @@ class Patient {
     required this.birthDate,
     required this.gender,
     this.profileImageUrl,
+    this.assignedDoctorId,
   });
 
   Patient copyWith({
@@ -53,6 +57,7 @@ class Patient {
     DateTime? birthDate,
     String? gender,
     String? profileImageUrl,
+    String? assignedDoctorId,
   }) {
     return Patient(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class Patient {
       birthDate: birthDate ?? this.birthDate,
       gender: gender ?? this.gender,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      assignedDoctorId: assignedDoctorId ?? this.assignedDoctorId,
     );
   }
 
@@ -80,7 +86,8 @@ class Patient {
           address == other.address &&
           birthDate == other.birthDate &&
           gender == other.gender &&
-          profileImageUrl == other.profileImageUrl;
+          profileImageUrl == other.profileImageUrl &&
+          assignedDoctorId == other.assignedDoctorId;
 
   @override
   int get hashCode =>
@@ -92,5 +99,6 @@ class Patient {
       address.hashCode ^
       birthDate.hashCode ^
       gender.hashCode ^
-      profileImageUrl.hashCode;
+      profileImageUrl.hashCode ^
+      assignedDoctorId.hashCode;
 }

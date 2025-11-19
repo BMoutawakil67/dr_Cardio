@@ -1,15 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/repositories/medical_note_repository.dart';
+import 'package:intl/intl.dart';
 
-class PatientMeasureDetailScreen extends StatelessWidget {
+class PatientMeasureDetailScreen extends StatefulWidget {
   const PatientMeasureDetailScreen({super.key});
 
   @override
+  State<PatientMeasureDetailScreen> createState() => _PatientMeasureDetailScreenState();
+}
+
+class _PatientMeasureDetailScreenState extends State<PatientMeasureDetailScreen> {
+  final MedicalNoteRepository _repository = MedicalNoteRepository();
+  MedicalNote? _note;
+  bool _isLoading = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadNote();
+  }
+
+  Future<void> _loadNote() async {
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+    if (args != null && args.containsKey('noteId')) {
+      final noteId = args['noteId'] as String;
+      final note = await _repository.getMedicalNote(noteId);
+
+      if (mounted) {
+        setState(() {
+          _note = note;
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Ces données viendraient normalement des arguments de navigation
-    final measureData =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
-            {};
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_note == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Détail')),
+        body: const Center(child: Text('Mesure non trouvée')),
+      );
+    }
+
+    final formattedDate = DateFormat('dd MMMM yyyy, HH:mm').format(_note!.date);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -36,7 +84,7 @@ class PatientMeasureDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               color: Colors.white,
               child: Text(
-                measureData['date'] ?? '27 Octobre 2025, 18:30',
+                formattedDate,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -70,7 +118,7 @@ class PatientMeasureDetailScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _buildPressureValue(
-                        measureData['systolic']?.toString() ?? '14',
+                        _note!.systolic.toString(),
                         'Systolique',
                       ),
                       const Padding(
@@ -85,7 +133,7 @@ class PatientMeasureDetailScreen extends StatelessWidget {
                         ),
                       ),
                       _buildPressureValue(
-                        measureData['diastolic']?.toString() ?? '9',
+                        _note!.diastolic.toString(),
                         'Diastolique',
                       ),
                     ],
@@ -103,7 +151,7 @@ class PatientMeasureDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${measureData['pulse'] ?? '72'} bpm',
+                        '${_note!.heartRate} bpm',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
@@ -117,10 +165,9 @@ class PatientMeasureDetailScreen extends StatelessWidget {
 
                   // Statut
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppTheme.successGreen.withValues(alpha: 0.1),
+                      color: _getStatusColor().withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -129,16 +176,16 @@ class PatientMeasureDetailScreen extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.successGreen,
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(),
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          measureData['status'] ?? 'Normal',
-                          style: const TextStyle(
-                            color: AppTheme.successGreen,
+                          _getStatus(),
+                          style: TextStyle(
+                            color: _getStatusColor(),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -152,147 +199,42 @@ class PatientMeasureDetailScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Section Contexte
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Text('📋', style: TextStyle(fontSize: 20)),
-                      SizedBox(width: 8),
-                      Text(
-                        'Contexte',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textColor,
+            if (_note!.context.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Text('📋', style: TextStyle(fontSize: 20)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Contexte',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textColor,
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _note!.context,
+                      style: const TextStyle(
+                        color: AppTheme.greyMedium,
+                        height: 1.4,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Médicaments
-                  _buildContextItem(
-                    icon: '💊',
-                    title: 'Médicaments:',
-                    content: '• Losartan 50mg (pris)',
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Poids
-                  _buildContextItem(
-                    icon: '⚖️',
-                    title: 'Poids:',
-                    content: '75 kg',
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Activité
-                  _buildContextItem(
-                    icon: '🏃',
-                    title: 'Activité:',
-                    content: 'Marche légère\n🚶 5,247 pas',
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Notes
-                  _buildContextItem(
-                    icon: '📝',
-                    title: 'Notes:',
-                    content: 'Journée stressante au travail, léger mal de tête',
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Section Comparaison
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Text('📊', style: TextStyle(fontSize: 20)),
-                      SizedBox(width: 8),
-                      Text(
-                        'Comparaison',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildComparisonRow('Vs moyenne:', '-0.5/-0.5', Colors.green),
-                  const SizedBox(height: 8),
-                  _buildComparisonRow('Vs hier:', '+1/+1', Colors.orange),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Analyse IA
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Text('🤖', style: TextStyle(fontSize: 20)),
-                      SizedBox(width: 8),
-                      Text(
-                        'Analyse IA:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    measureData['aiAnalysis'] ??
-                        'Votre tension est stable. Continuez vos médicaments et l\'activité physique.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textColor.withValues(alpha: 0.8),
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
             const SizedBox(height: 24),
 
@@ -330,6 +272,34 @@ class PatientMeasureDetailScreen extends StatelessWidget {
     );
   }
 
+  String _getStatus() {
+    if (_note!.systolic >= 18 || _note!.diastolic >= 11) {
+      return 'Hypertension élevée';
+    } else if (_note!.systolic >= 16 || _note!.diastolic >= 10) {
+      return 'Hypertension modérée';
+    } else if (_note!.systolic >= 14 || _note!.diastolic >= 9) {
+      return 'Tension élevée-normale';
+    } else if (_note!.systolic >= 12 || _note!.diastolic >= 8) {
+      return 'Normal';
+    } else {
+      return 'Tension basse';
+    }
+  }
+
+  Color _getStatusColor() {
+    if (_note!.systolic >= 18 || _note!.diastolic >= 11) {
+      return AppTheme.secondaryRed;
+    } else if (_note!.systolic >= 16 || _note!.diastolic >= 10) {
+      return AppTheme.warningOrange;
+    } else if (_note!.systolic >= 14 || _note!.diastolic >= 9) {
+      return Colors.yellow.shade700;
+    } else if (_note!.systolic >= 12 || _note!.diastolic >= 8) {
+      return AppTheme.successGreen;
+    } else {
+      return Colors.blue;
+    }
+  }
+
   Widget _buildPressureValue(String value, String label) {
     return Column(
       children: [
@@ -352,158 +322,141 @@ class PatientMeasureDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContextItem({
-    required String icon,
-    required String title,
-    required String content,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 18)),
-        const SizedBox(width: 8),
-        Expanded(
+  Future<void> _editMeasure(BuildContext context) async {
+    final systolicController = TextEditingController(text: _note!.systolic.toString());
+    final diastolicController = TextEditingController(text: _note!.diastolic.toString());
+    final pulseController = TextEditingController(text: _note!.heartRate.toString());
+    final contextController = TextEditingController(text: _note!.context);
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier la mesure'),
+        content: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textColor,
-                ),
+              TextField(
+                controller: systolicController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Systolique (mmHg)'),
               ),
-              const SizedBox(height: 4),
-              Text(
-                content,
-                style: TextStyle(
-                  color: AppTheme.greyMedium.withValues(alpha: 0.8),
-                  height: 1.4,
-                ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: diastolicController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Diastolique (mmHg)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: pulseController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Pouls (bpm)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contextController,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Contexte'),
               ),
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildComparisonRow(String label, String value, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.greyMedium,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _editMeasure(BuildContext context) {
-    final measureData =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
-            {};
-    final systolicController =
-        TextEditingController(text: measureData['systolic']?.toString() ?? '');
-    final diastolicController =
-        TextEditingController(text: measureData['diastolic']?.toString() ?? '');
-    final pulseController =
-        TextEditingController(text: measureData['pulse']?.toString() ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Modifier la mesure'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextField(
-                controller: systolicController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Systolique'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextField(
-                controller: diastolicController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Diastolique'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: TextField(
-                controller: pulseController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Pouls'),
-              ),
-            ),
-          ],
-        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Sauvegarder (mock)
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Mesure modifiée')),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Enregistrer'),
           ),
         ],
       ),
     );
+
+    if (result == true && mounted) {
+      try {
+        final updatedNote = _note!.copyWith(
+          systolic: int.parse(systolicController.text),
+          diastolic: int.parse(diastolicController.text),
+          heartRate: int.parse(pulseController.text),
+          context: contextController.text,
+        );
+
+        await _repository.updateMedicalNote(updatedNote);
+
+        setState(() {
+          _note = updatedNote;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Mesure modifiée avec succès'),
+              backgroundColor: AppTheme.successGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Erreur: $e'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    }
   }
 
-  void _confirmDelete(BuildContext context) {
-    showDialog(
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer la mesure'),
         content: const Text(
-            'Êtes-vous sûr de vouloir supprimer cette mesure? Cette action est irréversible.'),
+          'Êtes-vous sûr de vouloir supprimer cette mesure? Cette action est irréversible.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Annuler'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Mesure supprimée'),
-                  backgroundColor: AppTheme.successGreen,
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppTheme.secondaryRed),
             child: const Text('Supprimer'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true && mounted) {
+      try {
+        await _repository.deleteMedicalNote(_note!.id);
+
+        if (mounted) {
+          Navigator.pop(context, true); // Return true to indicate deletion
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Mesure supprimée'),
+              backgroundColor: AppTheme.successGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Erreur: $e'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _shareWithDoctor(BuildContext context) {
@@ -514,11 +467,11 @@ class PatientMeasureDetailScreen extends StatelessWidget {
           children: [
             Text('📨', style: TextStyle(fontSize: 24)),
             SizedBox(width: 8),
-            Text('Partager avec votre médecin'),
+            Expanded(child: Text('Partager avec votre médecin')),
           ],
         ),
         content: const Text(
-          'Cette mesure sera partagée avec Dr. Koné. Il pourra la consulter dans votre dossier médical et vous contacter si nécessaire.',
+          'Cette mesure sera partagée avec votre cardiologue. Il pourra la consulter dans votre dossier médical et vous contacter si nécessaire.',
         ),
         actions: [
           TextButton(
@@ -530,7 +483,7 @@ class PatientMeasureDetailScreen extends StatelessWidget {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Mesure partagée avec succès'),
+                  content: Text('✅ Mesure partagée avec succès'),
                   backgroundColor: AppTheme.successGreen,
                 ),
               );

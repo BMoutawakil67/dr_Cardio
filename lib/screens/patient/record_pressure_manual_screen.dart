@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
+import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/repositories/medical_note_repository.dart';
+import 'package:dr_cardio/config/app_theme.dart';
+import 'package:uuid/uuid.dart';
 
 class RecordPressureManualScreen extends StatefulWidget {
   const RecordPressureManualScreen({super.key});
@@ -11,11 +15,14 @@ class RecordPressureManualScreen extends StatefulWidget {
 
 class _RecordPressureManualScreenState
     extends State<RecordPressureManualScreen> {
+  final MedicalNoteRepository _medicalNoteRepository = MedicalNoteRepository();
+
   int _systolic = 14;
   int _diastolic = 9;
-  final int _pulse = 72;
+  int _pulse = 72;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
+  String _context = '';
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +144,7 @@ class _RecordPressureManualScreenState
 
             // Pouls
             Text(
-              'Pouls (bpm) - Optionnel',
+              'Pouls (bpm)',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -147,10 +154,38 @@ class _RecordPressureManualScreenState
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                '$_pulse',
-                style: Theme.of(context).textTheme.headlineLarge,
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  Text(
+                    '$_pulse',
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: () {
+                          setState(() {
+                            if (_pulse > 30) _pulse--;
+                          });
+                        },
+                      ),
+                      const Text('Diminuer'),
+                      const Spacer(),
+                      const Text('Augmenter'),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: () {
+                          setState(() {
+                            if (_pulse < 200) _pulse++;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -209,32 +244,160 @@ class _RecordPressureManualScreenState
             const SizedBox(height: 32),
 
             // Bouton Ajouter contexte
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.addContext);
+                _showContextDialog();
               },
-              child: const Text('AJOUTER CONTEXTE tesfkl'),
+              icon: const Icon(Icons.note_add_outlined),
+              label: Text(_context.isEmpty
+                  ? 'AJOUTER CONTEXTE'
+                  : 'MODIFIER CONTEXTE'),
             ),
+            if (_context.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _context,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () {
+                        setState(() {
+                          _context = '';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Bouton Enregistrer
             ElevatedButton(
-              onPressed: () {
-                if (!mounted) return;
-                // TODO: Enregistrer les données
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Mesure enregistrée avec succès'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                Navigator.pop(context);
-              },
+              onPressed: _saveMeasurement,
               child: const Text('ENREGISTRER'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showContextDialog() {
+    final contextController = TextEditingController(text: _context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ajouter un contexte'),
+        content: TextField(
+          controller: contextController,
+          decoration: const InputDecoration(
+            labelText: 'Contexte',
+            hintText: 'Ex: Après le repas, au repos, stressé...',
+          ),
+          maxLines: 3,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _context = contextController.text.trim();
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveMeasurement() async {
+    if (!mounted) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Combine date and time
+      final dateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
+      // TODO: Get actual patient ID from auth
+      const patientId = 'patient-001';
+      const doctorId = 'doctor-001';
+
+      final medicalNote = MedicalNote(
+        id: const Uuid().v4(),
+        patientId: patientId,
+        doctorId: doctorId,
+        date: dateTime,
+        systolic: _systolic,
+        diastolic: _diastolic,
+        heartRate: _pulse,
+        context: _context,
+      );
+
+      await _medicalNoteRepository.addMedicalNote(medicalNote);
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Mesure enregistrée avec succès'),
+          backgroundColor: AppTheme.successGreen,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Return to previous screen
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur lors de l\'enregistrement: $e'),
+          backgroundColor: AppTheme.errorRed,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }

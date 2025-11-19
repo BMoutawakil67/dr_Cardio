@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
@@ -6,7 +5,6 @@ import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class DoctorPatientFileScreen extends StatefulWidget {

@@ -3,6 +3,7 @@ import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 import 'package:uuid/uuid.dart';
 
 class PatientRegisterScreen extends StatefulWidget {
@@ -228,15 +229,20 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Créez votre compte',
-              style: Theme.of(context).textTheme.headlineMedium,
-              textAlign: TextAlign.center,
+            FadeInSlideUp(
+              delay: 0,
+              child: Text(
+                'Créez votre compte',
+                style: Theme.of(context).textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 32),
 
             // Nom complet
-            TextFormField(
+            FadeInSlideUp(
+              delay: 200,
+              child: TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.person_outline),
@@ -249,11 +255,14 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                 }
                 return null;
               },
+              ),
             ),
             const SizedBox(height: 16),
 
             // Email
-            TextFormField(
+            FadeInSlideUp(
+              delay: 400,
+              child: TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
@@ -269,11 +278,14 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                 }
                 return null;
               },
+              ),
             ),
             const SizedBox(height: 16),
 
             // Téléphone
-            TextFormField(
+            FadeInSlideUp(
+              delay: 600,
+              child: TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(

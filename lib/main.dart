@@ -8,7 +8,7 @@ import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/screens/common/splash_screen.dart';
 import 'package:dr_cardio/screens/common/onboarding_screen.dart';
 import 'package:dr_cardio/screens/common/profile_choice_screen.dart';
-import 'package:dr_cardio/screens/common/patient_login_screen.dart';
+import 'package:dr_cardio/screens/common/patient_login_screen_modern.dart';
 import 'package:dr_cardio/screens/common/doctor_login_screen.dart';
 import 'package:dr_cardio/screens/common/patient_register_screen.dart';
 import 'package:dr_cardio/screens/common/payment_screen.dart';
@@ -143,7 +143,7 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.profileChoice: (context) => const ProfileChoiceScreen(),
 
         // Routes d'authentification
-        AppRoutes.patientLogin: (context) => const PatientLoginScreen(),
+        AppRoutes.patientLogin: (context) => const PatientLoginScreenModern(),
         AppRoutes.patientRegister: (context) => const PatientRegisterScreen(),
         AppRoutes.doctorLogin: (context) => const DoctorLoginScreen(),
         AppRoutes.doctorRegister: (context) => const PlaceholderScreen(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -16,7 +17,9 @@ class HelpSupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Contact Section
-            Card(
+            FadeInSlideUp(
+              delay: 0,
+              child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -51,11 +54,14 @@ class HelpSupportScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
             const SizedBox(height: 16),
 
             // FAQ Section
-            Card(
+            FadeInSlideUp(
+              delay: 200,
+              child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -92,11 +98,14 @@ class HelpSupportScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
             const SizedBox(height: 16),
 
             // Guide Section
-            Card(
+            FadeInSlideUp(
+              delay: 400,
+              child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -118,11 +127,14 @@ class HelpSupportScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
             const SizedBox(height: 16),
 
             // Emergency Card
-            Card(
+            FadeInSlideUp(
+              delay: 600,
+              child: Card(
               color: AppTheme.secondaryRed.withValues(alpha: 0.1),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -149,7 +161,7 @@ class HelpSupportScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 12),
-                    ElevatedButton.icon(
+                    PressableButton(
                       onPressed: () {
                         // TODO: Implement emergency call
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -159,15 +171,27 @@ class HelpSupportScreen extends StatelessWidget {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.phone),
-                      label: const Text('Appeler le 185'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.secondaryRed,
-                        foregroundColor: Colors.white,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // TODO: Implement emergency call
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Appelez le 185 pour une urgence'),
+                              backgroundColor: AppTheme.secondaryRed,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.phone),
+                        label: const Text('Appeler le 185'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.secondaryRed,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   ],
                 ),
+              ),
               ),
             ),
           ],

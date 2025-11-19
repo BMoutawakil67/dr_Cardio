@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 
 class SubscriptionManagementScreen extends StatelessWidget {
   const SubscriptionManagementScreen({super.key});
@@ -16,9 +17,11 @@ class SubscriptionManagementScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Current Plan
-            Card(
-              elevation: 4,
-              child: Padding(
+            FadeInSlideUp(
+              delay: 0,
+              child: Card(
+                elevation: 4,
+                child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,20 +89,26 @@ class SubscriptionManagementScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
             const SizedBox(height: 24),
 
             // Features
-            const Text(
+            FadeInSlideUp(
+              delay: 200,
+              child: const Text(
               'Fonctionnalités incluses',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textColor,
               ),
+              ),
             ),
             const SizedBox(height: 12),
-            Card(
+            FadeInSlideUp(
+              delay: 400,
+              child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -112,11 +121,14 @@ class SubscriptionManagementScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
             const SizedBox(height: 24),
 
             // Upgrade Card
-            Card(
+            FadeInSlideUp(
+              delay: 600,
+              child: Card(
               color: AppTheme.primaryBlue.withValues(alpha: 0.1),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -162,32 +174,43 @@ class SubscriptionManagementScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _showUpgradeDialog(context);
-                        },
-                        child: const Text('Passer au Plan Clinique'),
+                    PressableButton(
+                      onPressed: () {
+                        _showUpgradeDialog(context);
+                      },
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            _showUpgradeDialog(context);
+                          },
+                          child: const Text('Passer au Plan Clinique'),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+              ),
             ),
             const SizedBox(height: 24),
 
             // Actions
-            const Text(
+            FadeInSlideUp(
+              delay: 800,
+              child: const Text(
               'Actions',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textColor,
               ),
+              ),
             ),
             const SizedBox(height: 12),
-            Card(
+            FadeInSlideUp(
+              delay: 1000,
+              child: Card(
               child: Column(
                 children: [
                   ListTile(
@@ -220,6 +243,7 @@ class SubscriptionManagementScreen extends StatelessWidget {
                     },
                   ),
                 ],
+              ),
               ),
             ),
             const SizedBox(height: 32),

@@ -1,4 +1,6 @@
 import 'package:dr_cardio/models/doctor_model.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/config/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class DoctorEditProfileScreen extends StatefulWidget {
@@ -11,6 +13,7 @@ class DoctorEditProfileScreen extends StatefulWidget {
 
 class _DoctorEditProfileScreenState extends State<DoctorEditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final DoctorRepository _doctorRepository = DoctorRepository();
 
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
@@ -44,22 +47,50 @@ class _DoctorEditProfileScreenState extends State<DoctorEditProfileScreen> {
     super.dispose();
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      // Create updated doctor using copyWith (immutable object)
-      final updatedDoctor = _doctor.copyWith(
-        firstName: _firstNameController.text,
-        lastName: _lastNameController.text,
-        email: _emailController.text,
-        phoneNumber: _phoneController.text,
-        specialty: _specialtyController.text,
-        address: _addressController.text,
-      );
+      try {
+        // Create updated doctor using copyWith (immutable object)
+        final updatedDoctor = _doctor.copyWith(
+          firstName: _firstNameController.text,
+          lastName: _lastNameController.text,
+          email: _emailController.text,
+          phoneNumber: _phoneController.text,
+          specialty: _specialtyController.text,
+          address: _addressController.text,
+        );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil enregistré avec succès !')),
-      );
-      Navigator.pop(context, updatedDoctor);
+        // Save to Hive
+        final success = await _doctorRepository.updateDoctor(updatedDoctor);
+
+        if (mounted) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Profil enregistré avec succès !'),
+                backgroundColor: AppTheme.successGreen,
+              ),
+            );
+            Navigator.pop(context, true); // Return true to indicate success
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Erreur lors de la sauvegarde'),
+                backgroundColor: AppTheme.errorRed,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Erreur: $e'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
     }
   }
 

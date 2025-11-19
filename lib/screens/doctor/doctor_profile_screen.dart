@@ -3,6 +3,8 @@ import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dr_cardio/models/doctor_model.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 
 class DoctorProfileScreen extends StatefulWidget {
   const DoctorProfileScreen({super.key});
@@ -12,25 +14,45 @@ class DoctorProfileScreen extends StatefulWidget {
 }
 
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
-  late Doctor _doctor;
+  final DoctorRepository _doctorRepository = DoctorRepository();
+  Doctor? _doctor;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _doctor = Doctor(
-      id: 'doctor-demo-001',
-      firstName: 'Mamadou',
-      lastName: 'KOUASSI',
-      specialty: 'Cardiologue',
-      email: 'dr.kouassi@drcardio.ci',
-      phoneNumber: '+225 07 08 09 10 11',
-      address: 'Clinique du Coeur - Abidjan',
-      profileImageUrl: null,
-    );
+    _loadDoctor();
+  }
+
+  Future<void> _loadDoctor() async {
+    final doctorId = AuthService().currentUserId ?? 'doctor-001';
+    final doctor = await _doctorRepository.getDoctor(doctorId);
+
+    if (mounted) {
+      setState(() {
+        _doctor = doctor;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_doctor == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mon Profil')),
+        body: const Center(child: Text('Erreur: Profil non trouvé')),
+      );
+    }
+
+    final doctor = _doctor!; // Safe because we checked for null above
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mon Profil'),
@@ -38,15 +60,14 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () async {
-              final updatedDoctor = await Navigator.pushNamed(
+              final result = await Navigator.pushNamed(
                 context,
                 AppRoutes.doctorEditProfile,
-                arguments: _doctor,
+                arguments: doctor,
               );
-              if (updatedDoctor != null && updatedDoctor is Doctor) {
-                setState(() {
-                  _doctor = updatedDoctor;
-                });
+              if (result == true) {
+                // Reload doctor from Hive after successful update
+                await _loadDoctor();
               }
             },
           ),
@@ -220,13 +241,13 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildInfoRow('Spécialité', _doctor.specialty),
+                      _buildInfoRow('Spécialité', doctor.specialty),
                       const Divider(),
-                      _buildInfoRow('Email', _doctor.email),
+                      _buildInfoRow('Email', doctor.email),
                       const Divider(),
-                      _buildInfoRow('Téléphone', _doctor.phoneNumber),
+                      _buildInfoRow('Téléphone', doctor.phoneNumber),
                       const Divider(),
-                      _buildInfoRow('Adresse', _doctor.address),
+                      _buildInfoRow('Adresse', doctor.address),
                     ],
                   ),
                 ),

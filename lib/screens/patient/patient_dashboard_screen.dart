@@ -130,7 +130,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                       final lastNote = snapshot.data!.first;
-                      final formattedDate = DateFormat('dd MMM, HH:mm', 'fr_FR')
+                      final formattedDate = DateFormat('dd/MM/yyyy, HH:mm')
                           .format(lastNote.date);
                       return Text(
                         'Dernière mesure: $formattedDate',
@@ -336,7 +336,7 @@ class _LastMeasureCard extends StatelessWidget {
     final String diastolic = note?.diastolic.toString() ?? '-';
     final String heartRate = note?.heartRate.toString() ?? '-';
     final String date = note != null
-        ? DateFormat('dd MMM yyyy, HH:mm', 'fr_FR').format(note!.date)
+        ? DateFormat('dd/MM/yyyy, HH:mm').format(note!.date)
         : 'N/A';
 
     return _AnimatedCard(

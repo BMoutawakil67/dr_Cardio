@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
+import 'package:dr_cardio/widgets/navigation/patient_bottom_navigation.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   const PatientProfileScreen({super.key});
@@ -440,6 +441,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               ),
             );
           }),
+      bottomNavigationBar: const PatientBottomNavigation(currentIndex: 3),
     );
   }
 

@@ -1,4 +1,4 @@
-'''import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';

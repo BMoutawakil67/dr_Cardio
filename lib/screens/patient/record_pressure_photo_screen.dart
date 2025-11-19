@@ -33,6 +33,15 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
   String _context = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Ouvrir automatiquement la caméra au démarrage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _capturePhoto();
+    });
+  }
+
+  @override
   void dispose() {
     _systolicController.dispose();
     _diastolicController.dispose();
@@ -176,22 +185,17 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Bouton Galerie
-                OutlinedButton.icon(
-                  onPressed: _openGallery,
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Galerie'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
-                  ),
-                ),
               ],
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openGallery,
+        icon: const Icon(Icons.photo_library_outlined),
+        label: const Text('Galerie'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
       ),
     );
   }

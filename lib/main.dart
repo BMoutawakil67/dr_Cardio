@@ -20,7 +20,7 @@ import 'package:dr_cardio/screens/patient/record_pressure_manual_screen.dart';
 import 'package:dr_cardio/screens/patient/record_pressure_photo_screen.dart';
 import 'package:dr_cardio/screens/patient/add_context_screen.dart';
 import 'package:dr_cardio/screens/patient/patient_history_screen.dart';
-import 'package:dr_cardio/screens/patient/patient_measure_detail_screen.dart';
+import 'package:dr_cardio/screens/patient/measure_detail_screen.dart';
 import 'package:dr_cardio/screens/patient/patient_messages_screen.dart';
 import 'package:dr_cardio/screens/patient/patient_chat_screen.dart';
 import 'package:dr_cardio/screens/patient/patient_profile_screen.dart';
@@ -178,7 +178,7 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.addContext: (context) => const AddContextScreen(),
         AppRoutes.patientHistory: (context) => const PatientHistoryScreen(),
         AppRoutes.measureDetail: (context) =>
-            const PatientMeasureDetailScreen(),
+            const MeasureDetailScreen(),
         AppRoutes.patientMessages: (context) => const PatientMessagesScreen(),
         AppRoutes.patientChat: (context) => const PatientChatScreen(),
         AppRoutes.patientDocuments: (context) => const PatientDocumentsScreen(),

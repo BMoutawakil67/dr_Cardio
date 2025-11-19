@@ -40,11 +40,30 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo avec icône médecin
-                Icon(
-                  Icons.medical_services,
-                  size: 60,
-                  color: AppTheme.secondaryRed,
+                // Logo
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logoBase.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
 

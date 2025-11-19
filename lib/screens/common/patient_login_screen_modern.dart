@@ -3,7 +3,9 @@ import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/services/auth_service.dart';
+import 'package:dr_cardio/services/biometric_auth_service.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
+import 'package:local_auth/local_auth.dart';
 
 /// Écran de connexion patient modernisé
 /// Inspiré de Reflectly avec animations fluides et design épuré
@@ -18,8 +20,29 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final BiometricAuthService _biometricAuthService = BiometricAuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isBiometricAvailable = false;
+  List<BiometricType> _availableBiometrics = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final isAvailable = await _biometricAuthService.isBiometricAvailable();
+    final biometrics = await _biometricAuthService.getAvailableBiometrics();
+
+    if (mounted) {
+      setState(() {
+        _isBiometricAvailable = isAvailable && biometrics.isNotEmpty;
+        _availableBiometrics = biometrics;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -45,6 +68,87 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                p.phoneNumber == email,
         orElse: () => throw Exception('Aucun compte trouvé avec cet email/téléphone'),
       );
+
+      if (!mounted) return;
+
+      AuthService().login(patient.id, 'patient');
+
+      // Activer l'authentification biométrique pour les prochaines fois
+      if (_isBiometricAvailable) {
+        await _biometricAuthService.enableBiometricAuth(patient.id, 'patient');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Bienvenue ${patient.firstName}!'),
+          backgroundColor: AppTheme.successGreen,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, AppRoutes.patientDashboard);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppTheme.errorRed,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    if (!_isBiometricAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('❌ Authentification biométrique non disponible sur cet appareil'),
+          backgroundColor: AppTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final userInfo = await _biometricAuthService.authenticateAndGetUserInfo();
+
+      if (userInfo == null) {
+        throw Exception('Authentification échouée');
+      }
+
+      final userId = userInfo['userId'] as String;
+      final userType = userInfo['userType'] as String?;
+
+      if (userType != 'patient') {
+        throw Exception('Ce compte n\'est pas un compte patient');
+      }
+
+      if (!mounted) return;
+
+      // Récupérer les informations du patient
+      final repository = PatientRepository();
+      final patient = await repository.getPatient(userId);
+
+      if (patient == null) {
+        throw Exception('Compte introuvable');
+      }
 
       if (!mounted) return;
 
@@ -127,7 +231,7 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                       minScale: 0.98,
                       maxScale: 1.02,
                       child: Container(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
@@ -139,10 +243,13 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.favorite,
-                          size: 60,
-                          color: AppTheme.primaryBlue,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logoBase.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -332,22 +439,11 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                   const SizedBox(height: 40),
 
                   // Biométrie
-                  FadeInSlideUp(
-                    delay: 1600,
-                    child: PressableButton(
-                      onPressed: () {
-                        // TODO: Implémenter biométrie
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Authentification biométrique à venir'),
-                            backgroundColor: AppTheme.primaryBlue,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        );
-                      },
+                  if (_isBiometricAvailable)
+                    FadeInSlideUp(
+                      delay: 1600,
+                      child: PressableButton(
+                        onPressed: _isLoading ? null : _handleBiometricLogin,
                       child: Container(
                         height: 60,
                         decoration: BoxDecoration(

@@ -433,4 +433,3 @@ class _DoctorBottomNav extends StatelessWidget {
     );
   }
 }
-'''

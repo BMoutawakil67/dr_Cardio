@@ -170,7 +170,7 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.payment: (context) => const PaymentScreen(),
 
         // Routes Patient
-        AppRoutes.patientDashboard: (context) => PatientDashboardScreen(),
+        AppRoutes.patientDashboard: (context) => const PatientDashboardScreen(),
         AppRoutes.recordPressurePhoto: (context) =>
             const RecordPressurePhotoScreen(),
         AppRoutes.recordPressureManual: (context) =>
@@ -183,18 +183,18 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.patientChat: (context) => const PatientChatScreen(),
         AppRoutes.patientDocuments: (context) => const PatientDocumentsScreen(),
         AppRoutes.teleconsultation: (context) => const TeleconsultationScreen(),
-        AppRoutes.patientProfile: (context) => PatientProfileScreen(),
-        AppRoutes.patientEditProfile: (context) => PatientEditProfileScreen(),
+        AppRoutes.patientProfile: (context) => const PatientProfileScreen(),
+        AppRoutes.patientEditProfile: (context) => const PatientEditProfileScreen(),
         AppRoutes.patientNotifications: (context) =>
             const NotificationsScreen(),
         AppRoutes.patientSettings: (context) => const PatientSettingsScreen(),
 
         // Routes Cardiologue
-        AppRoutes.doctorDashboard: (context) => DoctorDashboardScreen(),
+        AppRoutes.doctorDashboard: (context) => const DoctorDashboardScreen(),
         AppRoutes.doctorProfile: (context) => const DoctorProfileScreen(),
         AppRoutes.doctorEditProfile: (context) =>
             const DoctorEditProfileScreen(),
-        AppRoutes.doctorPatients: (context) => DoctorPatientsScreen(),
+        AppRoutes.doctorPatients: (context) => const DoctorPatientsScreen(),
         AppRoutes.patientFile: (context) => const DoctorPatientFileScreen(),
         AppRoutes.patientFullHistory: (context) =>
             const DoctorPatientHistoryScreen(),

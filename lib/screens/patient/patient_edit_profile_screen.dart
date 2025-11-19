@@ -1,6 +1,7 @@
-'''import 'package:dr_cardio/models/patient_model.dart';
+import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:dr_cardio/config/app_theme.dart';
 
 class PatientEditProfileScreen extends StatefulWidget {
   const PatientEditProfileScreen({super.key});
@@ -21,23 +22,25 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _heightController = TextEditingController();
+  final _addressController = TextEditingController();
+  String? _selectedGender;
+  DateTime? _birthDate;
 
   @override
   void initState() {
     super.initState();
     _patientFuture = _patientRepository.getPatient(_patientId);
     _patientFuture.then((patient) {
-      if (patient != null) {
-        _firstNameController.text = patient.firstName;
-        _lastNameController.text = patient.lastName;
-        _emailController.text = patient.email;
-        _phoneController.text = patient.phoneNumber ?? '';
-        _ageController.text = patient.age.toString();
-        _weightController.text = patient.weight.toString();
-        _heightController.text = patient.height.toString();
+      if (patient != null && mounted) {
+        setState(() {
+          _firstNameController.text = patient.firstName;
+          _lastNameController.text = patient.lastName;
+          _emailController.text = patient.email;
+          _phoneController.text = patient.phoneNumber;
+          _addressController.text = patient.address;
+          _selectedGender = patient.gender.isNotEmpty ? patient.gender : null;
+          _birthDate = patient.birthDate;
+        });
       }
     });
   }
@@ -48,35 +51,55 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _ageController.dispose();
-    _weightController.dispose();
-    _heightController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      final updatedPatient = Patient(
-        id: _patientId,
-        firstName: _firstNameController.text,
-        lastName: _lastNameController.text,
-        email: _emailController.text, // Email might not be editable in a real app
-        phoneNumber: _phoneController.text,
-        age: int.parse(_ageController.text),
-        weight: double.parse(_weightController.text),
-        height: double.parse(_heightController.text),
-        // These fields are not edited on this screen, so we carry them over
-        avatarUrl: (await _patientFuture)?.avatarUrl,
-        doctorId: (await _patientFuture)?.doctorId,
+      final currentPatient = await _patientFuture;
+      if (currentPatient == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Erreur: Patient introuvable'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+        return;
+      }
+
+      final updatedPatient = currentPatient.copyWith(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
+        gender: _selectedGender ?? currentPatient.gender,
+        birthDate: _birthDate ?? currentPatient.birthDate,
       );
 
-      await _patientRepository.updatePatient(updatedPatient);
+      try {
+        await _patientRepository.updatePatient(updatedPatient);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil enregistré avec succès !')),
-        );
-        Navigator.pop(context, true); // Return true to indicate success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Profil enregistré avec succès !'),
+              backgroundColor: AppTheme.successGreen,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Erreur lors de la sauvegarde: $e'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
       }
     }
   }
@@ -93,9 +116,15 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError || !snapshot.hasData) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Erreur: ${snapshot.error}'),
+            );
+          }
+          if (!snapshot.hasData) {
             return const Center(
-                child: Text('Impossible de charger les informations.'));
+              child: Text('Patient introuvable'),
+            );
           }
 
           return SingleChildScrollView(
@@ -107,7 +136,10 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
                 children: [
                   TextFormField(
                     controller: _firstNameController,
-                    decoration: const InputDecoration(labelText: 'Prénom'),
+                    decoration: const InputDecoration(
+                      labelText: 'Prénom',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Veuillez entrer votre prénom';
@@ -118,7 +150,10 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _lastNameController,
-                    decoration: const InputDecoration(labelText: 'Nom de famille'),
+                    decoration: const InputDecoration(
+                      labelText: 'Nom de famille',
+                      prefixIcon: Icon(Icons.person),
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Veuillez entrer votre nom de famille';
@@ -129,49 +164,102 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    enabled: false, // Email is not editable
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                    enabled: false,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _phoneController,
-                    decoration: const InputDecoration(labelText: 'Téléphone'),
+                    decoration: const InputDecoration(
+                      labelText: 'Téléphone',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
                     keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer votre téléphone';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _ageController,
-                          decoration: const InputDecoration(labelText: 'Âge'),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _weightController,
-                          decoration: const InputDecoration(
-                              labelText: 'Poids (kg)'),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _heightController,
-                          decoration: const InputDecoration(
-                              labelText: 'Taille (m)'),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
+                  TextFormField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Adresse',
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer votre adresse';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: _selectedGender,
+                    decoration: const InputDecoration(
+                      labelText: 'Genre',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Homme', child: Text('Homme')),
+                      DropdownMenuItem(value: 'Femme', child: Text('Femme')),
+                      DropdownMenuItem(value: 'Autre', child: Text('Autre')),
                     ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedGender = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez sélectionner votre genre';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _birthDate ?? DateTime(2000),
+                        firstDate: DateTime(1920),
+                        lastDate: DateTime.now(),
+                      );
+                      if (date != null) {
+                        setState(() {
+                          _birthDate = date;
+                        });
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Date de naissance',
+                        prefixIcon: Icon(Icons.calendar_today_outlined),
+                      ),
+                      child: Text(
+                        _birthDate != null
+                            ? '${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}'
+                            : 'Sélectionner une date',
+                        style: TextStyle(
+                          color: _birthDate != null ? null : Colors.grey,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: _saveProfile,
-                    child: const Text('Enregistrer'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('ENREGISTRER'),
                   ),
                 ],
               ),
@@ -182,4 +270,3 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
     );
   }
 }
-'''

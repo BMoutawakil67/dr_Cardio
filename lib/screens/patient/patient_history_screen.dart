@@ -362,4 +362,3 @@ class _MeasureCard extends StatelessWidget {
     );
   }
 }
-'''

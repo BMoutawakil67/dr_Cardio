@@ -26,14 +26,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   void initState() {
     super.initState();
     _patientFuture = _patientRepository.getPatient(_patientId);
-    // TODO: This assumes the patient has a doctorId. Handle cases where it might be null.
-    _patientFuture.then((patient) {
-      if (patient != null && patient.doctorId != null) {
-        setState(() {
-          _doctorFuture = _doctorRepository.getDoctor(patient.doctorId!);
-        });
-      }
-    });
+    // TODO: Add doctor assignment logic
+    // For now, using hardcoded doctor ID from mock data
+    _doctorFuture = _doctorRepository.getDoctor('doctor-001');
   }
 
   @override
@@ -69,11 +64,11 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   // Photo de profil
                   CircleAvatar(
                     radius: 50,
-                    backgroundImage: patient.avatarUrl != null
-                        ? NetworkImage(patient.avatarUrl!)
+                    backgroundImage: patient.profileImageUrl != null
+                        ? NetworkImage(patient.profileImageUrl!)
                         : null,
                     backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: patient.avatarUrl == null
+                    child: patient.profileImageUrl == null
                         ? const Icon(Icons.person, size: 50, color: Colors.white)
                         : null,
                   ),
@@ -95,13 +90,16 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   Card(
                     child: Column(
                       children: [
-                        _InfoTile(label: '📅 Âge', value: '${patient.age} ans'),
+                        _InfoTile(
+                          label: '📅 Âge',
+                          value: '${DateTime.now().year - patient.birthDate.year} ans',
+                        ),
                         const Divider(height: 1),
-                        _InfoTile(label: '⚖️ Poids', value: '${patient.weight} kg'),
+                        _InfoTile(label: '👤 Genre', value: patient.gender),
                         const Divider(height: 1),
-                        _InfoTile(label: '📏 Taille', value: '${patient.height} m'),
+                        _InfoTile(label: '📍 Adresse', value: patient.address),
                         const Divider(height: 1),
-                        _InfoTile(label: '🩺 IMC', value: '24.5'), // TODO: Calculate IMC
+                        _InfoTile(label: '📞 Téléphone', value: patient.phoneNumber),
                       ],
                     ),
                   ),
@@ -113,8 +111,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     future: _doctorFuture,
                     builder: (context, doctorSnapshot) {
                       if (doctorSnapshot.connectionState ==
-                              ConnectionState.waiting &&
-                          patient.doctorId != null) {
+                              ConnectionState.waiting) {
                         return const Card(child: Center(child: Padding(
                           padding: EdgeInsets.all(16.0),
                           child: CircularProgressIndicator(),
@@ -133,10 +130,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                               Row(
                                 children: [
                                   CircleAvatar(
-                                    backgroundImage: doctorData.avatarUrl != null
-                                        ? NetworkImage(doctorData.avatarUrl!)
+                                    backgroundImage: doctorData.profileImageUrl != null
+                                        ? NetworkImage(doctorData.profileImageUrl!)
                                         : null,
-                                    child: doctorData.avatarUrl == null
+                                    child: doctorData.profileImageUrl == null
                                         ? const Icon(Icons.person)
                                         : null,
                                   ),
@@ -153,7 +150,15 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                                           ),
                                         ),
                                         Text(
-                                          '📍 ${doctorData.location}',
+                                          '${doctorData.specialty}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall?.copyWith(
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                        ),
+                                        Text(
+                                          '📍 ${doctorData.address}',
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall,

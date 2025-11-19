@@ -299,6 +299,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
                 }
                 return null;
               },
+              ),
             ),
             const SizedBox(height: 16),
 

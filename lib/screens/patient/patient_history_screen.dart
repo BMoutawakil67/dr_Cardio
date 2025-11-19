@@ -1,3 +1,5 @@
+'''import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
@@ -10,7 +12,28 @@ class PatientHistoryScreen extends StatefulWidget {
 }
 
 class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
+  final MedicalNoteRepository _medicalNoteRepository = MedicalNoteRepository();
+  late Future<List<MedicalNote>> _medicalNotesFuture;
   String _selectedPeriod = '7J';
+  String? _patientId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('patientId')) {
+      _patientId = args['patientId'];
+      if (_patientId != null) {
+        _medicalNotesFuture = _medicalNoteRepository.getMedicalNotesByPatient(_patientId!);
+      } else {
+        _medicalNotesFuture = Future.value([]);
+      }
+    } else {
+      _medicalNotesFuture = Future.value([]);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -139,34 +162,40 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
+            FutureBuilder<List<MedicalNote>>(
+              future: _medicalNotesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text('Erreur de chargement des notes médicales.'),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Aucune note médicale.'));
+                }
 
-            _MeasureCard(
-              date: '27 Oct, 18:30',
-              systolic: 14,
-              diastolic: 9,
-              pulse: 72,
-              status: 'Normal',
-              statusColor: AppTheme.successGreen,
-              context: '💊 Losartan pris',
-            ),
-            const SizedBox(height: 12),
-            _MeasureCard(
-              date: '27 Oct, 08:15',
-              systolic: 13,
-              diastolic: 8,
-              pulse: 68,
-              status: 'Normal',
-              statusColor: AppTheme.successGreen,
-            ),
-            const SizedBox(height: 12),
-            _MeasureCard(
-              date: '26 Oct, 19:00',
-              systolic: 16,
-              diastolic: 10,
-              pulse: 80,
-              status: 'Légèrement élevée',
-              statusColor: AppTheme.warningOrange,
-              warning: '⚠️ Légèrement élevée',
+                final notes = snapshot.data!;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: notes.length,
+                  itemBuilder: (context, index) {
+                    final note = notes[index];
+                    return _MeasureCard(
+                      date: '${note.date.day}/${note.date.month}/${note.date.year}',
+                      systolic: note.systolic,
+                      diastolic: note.diastolic,
+                      pulse: note.heartRate,
+                      status: 'Normal', // TODO: Implement status logic
+                      statusColor: AppTheme.successGreen, // TODO: Implement color logic
+                      context: note.context,
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -333,3 +362,4 @@ class _MeasureCard extends StatelessWidget {
     );
   }
 }
+'''

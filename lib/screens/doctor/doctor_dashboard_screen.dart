@@ -1,9 +1,32 @@
+import 'package:dr_cardio/models/doctor_model.dart';
+import 'package:dr_cardio/models/patient_model.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 
-class DoctorDashboardScreen extends StatelessWidget {
+class DoctorDashboardScreen extends StatefulWidget {
   const DoctorDashboardScreen({super.key});
+
+  @override
+  State<DoctorDashboardScreen> createState() => _DoctorDashboardScreenState();
+}
+
+class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
+  final DoctorRepository _doctorRepository = DoctorRepository();
+  final PatientRepository _patientRepository = PatientRepository();
+
+  late Future<Doctor?> _doctorFuture;
+  late Future<List<Patient>> _patientsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // TODO: Replace with actual doctor ID from auth
+    _doctorFuture = _doctorRepository.getDoctor('doctor-001'); 
+    _patientsFuture = _patientRepository.getAllPatients();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +58,7 @@ class DoctorDashboardScreen extends StatelessWidget {
                     minHeight: 16,
                   ),
                   child: const Text(
-                    '5',
+                    '5', // TODO: Replace with dynamic alert count
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -55,9 +78,24 @@ class DoctorDashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Salutation
-            Text(
-              '👨‍⚕️ Bonjour Dr. Kouassi',
-              style: Theme.of(context).textTheme.headlineMedium,
+            FutureBuilder<Doctor?>(
+              future: _doctorFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return Text(
+                    '👨‍⚕️ Bonjour Dr.',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  );
+                }
+                final doctor = snapshot.data!;
+                return Text(
+                  '👨‍⚕️ Bonjour Dr. ${doctor.lastName}',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                );
+              },
             ),
             const SizedBox(height: 24),
 
@@ -67,33 +105,50 @@ class DoctorDashboardScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    value: '45',
-                    label: 'Patients',
-                    icon: Icons.people_outline,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    value: '3',
-                    label: 'Alertes',
-                    icon: Icons.warning_amber_outlined,
-                    color: AppTheme.warningOrange,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    value: '12',
-                    label: 'Messages',
-                    icon: Icons.message_outlined,
-                  ),
-                ),
-              ],
+            FutureBuilder<List<Patient>>(
+              future: _patientsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Row(
+                    children: [
+                      Expanded(child: _StatCard(value: '-', label: 'Patients', icon: Icons.people_outline)),
+                      SizedBox(width: 12),
+                      Expanded(child: _StatCard(value: '-', label: 'Alertes', icon: Icons.warning_amber_outlined, color: AppTheme.warningOrange)),
+                      SizedBox(width: 12),
+                      Expanded(child: _StatCard(value: '-', label: 'Messages', icon: Icons.message_outlined)),
+                    ],
+                  );
+                }
+                final patientCount = snapshot.data?.length ?? 0;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        value: patientCount.toString(),
+                        label: 'Patients',
+                        icon: Icons.people_outline,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        value: '3', // TODO: Replace with dynamic alert count
+                        label: 'Alertes',
+                        icon: Icons.warning_amber_outlined,
+                        color: AppTheme.warningOrange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        value: '12', // TODO: Replace with dynamic message count
+                        label: 'Messages',
+                        icon: Icons.message_outlined,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 24),
 
@@ -109,12 +164,12 @@ class DoctorDashboardScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      '90,000 F CFA',
+                      '90,000 F CFA', // TODO: Replace with dynamic revenue
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
-                      value: 0.75,
+                      value: 0.75, // TODO: Replace with dynamic progress
                       backgroundColor: Colors.grey.shade200,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         Theme.of(context).colorScheme.primary,
@@ -122,7 +177,7 @@ class DoctorDashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '75% de l\'objectif',
+                      '75% de l\'objectif', // TODO: Replace with dynamic goal
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -378,3 +433,4 @@ class _DoctorBottomNav extends StatelessWidget {
     );
   }
 }
+'''

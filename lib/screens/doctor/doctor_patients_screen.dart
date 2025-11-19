@@ -1,3 +1,5 @@
+import 'package:dr_cardio/models/patient_model.dart';
+import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
@@ -11,106 +13,17 @@ class DoctorPatientsScreen extends StatefulWidget {
 }
 
 class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
+  final PatientRepository _patientRepository = PatientRepository();
+  late Future<List<Patient>> _patientsFuture;
+
   String _selectedFilter = 'Tous';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // Mock data - Remplacer par une vraie source de données
-  final List<Map<String, dynamic>> _allPatients = [
-    {
-      'name': 'Jean Dupont',
-      'age': 45,
-      'lastMeasure': '18/11 (15min)',
-      'subscription': 'Standard',
-      'statusColor': AppTheme.secondaryRed,
-      'statusIcon': '🔴',
-      'status': 'critical',
-    },
-    {
-      'name': 'Marie Koffi',
-      'age': 52,
-      'lastMeasure': '16/10 (2h)',
-      'subscription': 'Premium',
-      'statusColor': AppTheme.warningOrange,
-      'statusIcon': '🟠',
-      'status': 'high',
-    },
-    {
-      'name': 'Paul Mensah',
-      'age': 38,
-      'lastMeasure': '13/8 (1j)',
-      'subscription': 'Standard',
-      'statusColor': AppTheme.successGreen,
-      'statusIcon': '🟢',
-      'status': 'normal',
-    },
-    {
-      'name': 'Fatou Diallo',
-      'age': 60,
-      'lastMeasure': '14/9 (1j)',
-      'subscription': 'Famille',
-      'statusColor': AppTheme.successGreen,
-      'statusIcon': '🟢',
-      'status': 'normal',
-    },
-    {
-      'name': 'Amadou Traoré',
-      'age': 55,
-      'lastMeasure': '15/9 (2j)',
-      'subscription': 'Premium',
-      'statusColor': AppTheme.successGreen,
-      'statusIcon': '🟢',
-      'status': 'normal',
-    },
-    {
-      'name': 'Aissata Camara',
-      'age': 48,
-      'lastMeasure': '17/10 (3j)',
-      'subscription': 'Standard',
-      'statusColor': AppTheme.warningOrange,
-      'statusIcon': '🟠',
-      'status': 'high',
-    },
-  ];
-
-  List<Map<String, dynamic>> get _filteredPatients {
-    List<Map<String, dynamic>> patients = _allPatients.where((patient) {
-      // 1. Filtre par la barre de recherche
-      final nameMatches = patient['name'].toLowerCase().contains(_searchQuery);
-      if (!nameMatches) return false;
-
-      // 2. Filtre par les statuts (Alertes, Stables)
-      final isStatusFilter =
-          _selectedFilter == '🔴 Alertes' || _selectedFilter == '🟢 Stables';
-      if (!isStatusFilter) {
-        return true; // Si le filtre n'est pas un statut, on inclut tout le monde (pour A-Z, Récents, Tous)
-      }
-
-      if (_selectedFilter == '🔴 Alertes') {
-        return patient['status'] == 'critical' || patient['status'] == 'high';
-      }
-
-      if (_selectedFilter == '🟢 Stables') {
-        return patient['status'] == 'normal';
-      }
-
-      return true;
-    }).toList();
-
-    // 3. Tri de la liste résultante
-    if (_selectedFilter == '🔤 A-Z') {
-      patients.sort(
-          (a, b) => a['name'].toLowerCase().compareTo(b['name'].toLowerCase()));
-    }
-
-    // TODO: Implémenter le tri pour '📅 Récents'
-
-    return patients;
-  }
-
   @override
   void initState() {
     super.initState();
+    _patientsFuture = _patientRepository.getAllPatients();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -122,6 +35,40 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  List<Patient> _filterAndSortPatients(List<Patient> allPatients) {
+    List<Patient> patients = allPatients.where((patient) {
+      final fullName = '${patient.firstName} ${patient.lastName}'.toLowerCase();
+      final nameMatches = fullName.contains(_searchQuery);
+      if (!nameMatches) return false;
+
+      // NOTE: La logique de statut n'est pas encore implémentée dans le modèle Patient.
+      // Nous allons donc la laisser en commentaire pour l'instant.
+      // final isStatusFilter =
+      //     _selectedFilter == '🔴 Alertes' || _selectedFilter == '🟢 Stables';
+      // if (!isStatusFilter) {
+      //   return true;
+      // }
+      // if (_selectedFilter == '🔴 Alertes') {
+      //   return patient.status == 'critical' || patient.status == 'high';
+      // }
+      // if (_selectedFilter == '🟢 Stables') {
+      //   return patient.status == 'normal';
+      // }
+
+      return true;
+    }).toList();
+
+    if (_selectedFilter == '🔤 A-Z') {
+      patients.sort((patientA, patientB) {
+        final nameA = '${patientA.firstName} ${patientA.lastName}'.toLowerCase();
+        final nameB = '${patientB.firstName} ${patientB.lastName}'.toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+    }
+
+    return patients;
   }
 
   @override
@@ -173,40 +120,56 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
             ),
           ),
 
-          // Compteur patients
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: AppTheme.greyLight,
-            child: Text(
-              '${_filteredPatients.length} patients correspondants',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textColor.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-
-          // Liste des patients
+          // Compteur et Liste des patients
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _filteredPatients.length,
-              itemBuilder: (context, index) {
-                final patient = _filteredPatients[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: _PatientCard(
-                    name: patient['name'],
-                    age: patient['age'],
-                    lastMeasure: patient['lastMeasure'],
-                    subscription: patient['subscription'],
-                    statusColor: patient['statusColor'],
-                    statusIcon: patient['statusIcon'],
-                    onTap: () => _openPatientFile(patient['name']),
-                    status: patient['status'],
-                  ),
+            child: FutureBuilder<List<Patient>>(
+              future: _patientsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Erreur: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Aucun patient trouvé'));
+                }
+
+                final allPatients = snapshot.data!;
+                final filteredPatients = _filterAndSortPatients(allPatients);
+
+                return Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      color: AppTheme.greyLight,
+                      child: Text(
+                        '${filteredPatients.length} patients correspondants',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textColor.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredPatients.length,
+                        itemBuilder: (context, index) {
+                          final patient = filteredPatients[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: _PatientCard(
+                              patient: patient,
+                              onTap: () => _openPatientFile(patient.id),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -329,38 +292,40 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
     );
   }
 
-  void _openPatientFile(String patientName) {
+  void _openPatientFile(String patientId) {
     Navigator.pushNamed(
       context,
       AppRoutes.patientFile,
-      arguments: {'patientName': patientName},
+      arguments: {'patientId': patientId},
     );
   }
 }
 
 class _PatientCard extends StatelessWidget {
-  final String name;
-  final int age;
-  final String lastMeasure;
-  final String subscription;
-  final Color statusColor;
-  final String statusIcon;
+  final Patient patient;
   final VoidCallback onTap;
-  final String status;
 
   const _PatientCard({
-    required this.name,
-    required this.age,
-    required this.lastMeasure,
-    required this.subscription,
-    required this.statusColor,
-    required this.statusIcon,
+    required this.patient,
     required this.onTap,
-    required this.status,
   });
 
   @override
   Widget build(BuildContext context) {
+    final age = DateTime.now().year - patient.birthDate.year;
+    // TODO: Implement status logic based on medical notes
+    const status = 'normal';
+    final statusColor = status == 'critical'
+        ? AppTheme.secondaryRed
+        : status == 'high'
+            ? AppTheme.warningOrange
+            : AppTheme.successGreen;
+    final statusIcon = status == 'critical'
+        ? '🔴'
+        : status == 'high'
+            ? '🟠'
+            : '🟢';
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -382,7 +347,7 @@ class _PatientCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      name,
+                      '${patient.firstName} ${patient.lastName}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -394,7 +359,7 @@ class _PatientCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
+                    color: statusColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -407,9 +372,10 @@ class _PatientCard extends StatelessWidget {
             const SizedBox(height: 12),
             _buildInfoRow('Âge:', '$age ans'),
             const SizedBox(height: 4),
-            _buildInfoRow('Dernière:', lastMeasure),
+            _buildInfoRow('Dernière:', 'N/A'), // TODO: Get from medical notes
             const SizedBox(height: 4),
-            _buildInfoRow('Abonnement:', subscription),
+            _buildInfoRow(
+                'Abonnement:', 'Standard'), // TODO: Add to patient model
             const SizedBox(height: 4),
             _buildInfoRow('Statut:', status),
             const SizedBox(height: 12),

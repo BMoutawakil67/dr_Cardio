@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
-import 'package:dr_cardio/widgets/navigation/patient_bottom_navigation.dart';
+import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 
 class PatientMessagesScreen extends StatelessWidget {
   const PatientMessagesScreen({super.key});
@@ -56,7 +56,7 @@ class PatientMessagesScreen extends StatelessWidget {
                 return _buildConversationCard(context, conv);
               },
             ),
-      bottomNavigationBar: const PatientBottomNavigation(currentIndex: 2),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 3),
     );
   }
 

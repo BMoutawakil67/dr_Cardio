@@ -172,16 +172,29 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () {},
-                                      child: const Text('Contacter'),
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        // Open chat with current cardiologist
+                                        Navigator.pushNamed(
+                                          context,
+                                          AppRoutes.patientChat,
+                                          arguments: {
+                                            'name': 'Dr. ${doctorData.firstName} ${doctorData.lastName}',
+                                            'avatar': Icons.person,
+                                            'doctorId': doctorData.id,
+                                          },
+                                        );
+                                      },
+                                      icon: const Icon(Icons.chat_outlined, size: 18),
+                                      label: const Text('Contacter'),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () {},
-                                      child: const Text('Changer'),
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _showChangeCardioDialog(context),
+                                      icon: const Icon(Icons.swap_horiz, size: 18),
+                                      label: const Text('Changer'),
                                     ),
                                   ),
                                 ],
@@ -378,6 +391,68 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               ),
             );
           }),
+    );
+  }
+
+  Future<void> _showChangeCardioDialog(BuildContext context) async {
+    // Get all doctors
+    final doctors = await _doctorRepository.getAllDoctors();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Changer de cardiologue'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: doctors.isEmpty
+              ? const Text('Aucun cardiologue disponible')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: doctors.length,
+                  itemBuilder: (context, index) {
+                    final doctor = doctors[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: doctor.profileImageUrl != null
+                            ? NetworkImage(doctor.profileImageUrl!)
+                            : null,
+                        child: doctor.profileImageUrl == null
+                            ? const Icon(Icons.person)
+                            : null,
+                      ),
+                      title: Text('Dr. ${doctor.firstName} ${doctor.lastName}'),
+                      subtitle: Text(doctor.specialty),
+                      onTap: () async {
+                        Navigator.pop(dialogContext);
+
+                        // TODO: Update patient's assigned doctor in database
+                        // For now, just reload the doctor
+                        setState(() {
+                          _doctorFuture = _doctorRepository.getDoctor(doctor.id);
+                        });
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Cardiologue changé pour Dr. ${doctor.firstName} ${doctor.lastName}'),
+                              backgroundColor: AppTheme.successGreen,
+                            ),
+                          );
+                        }
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+        ],
+      ),
     );
   }
 }

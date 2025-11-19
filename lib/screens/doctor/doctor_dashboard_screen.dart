@@ -7,6 +7,7 @@ import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 
 class DoctorDashboardScreen extends StatefulWidget {
   const DoctorDashboardScreen({super.key});
@@ -346,7 +347,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _DoctorBottomNav(currentIndex: 0),
+      bottomNavigationBar: const DoctorBottomNav(currentIndex: 0),
     );
   }
 }
@@ -470,64 +471,3 @@ class _AlertCard extends StatelessWidget {
   }
 }
 
-class _DoctorBottomNav extends StatelessWidget {
-  final int currentIndex;
-
-  const _DoctorBottomNav({required this.currentIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Colors.grey,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
-            break;
-          case 1:
-            Navigator.pushNamed(context, AppRoutes.doctorPatients);
-            break;
-          case 2:
-            Navigator.pushNamed(context, AppRoutes.doctorMessages);
-            break;
-          case 3:
-            Navigator.pushNamed(context, AppRoutes.doctorRevenue);
-            break;
-          case 4:
-            Navigator.pushNamed(context, AppRoutes.doctorProfile);
-            break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Accueil',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.people_outline),
-          activeIcon: Icon(Icons.people),
-          label: 'Patients',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.message_outlined),
-          activeIcon: Icon(Icons.message),
-          label: 'Messages',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.analytics_outlined),
-          activeIcon: Icon(Icons.analytics),
-          label: 'Stats',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profil',
-        ),
-      ],
-    );
-  }
-}

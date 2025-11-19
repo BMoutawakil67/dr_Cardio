@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
+import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 import 'package:intl/intl.dart';
 
 class PatientDashboardScreen extends StatefulWidget {
@@ -286,7 +287,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _PatientBottomNav(currentIndex: 0),
+      bottomNavigationBar: const PatientBottomNav(currentIndex: 0),
     );
   }
 }
@@ -565,66 +566,3 @@ class _MessagePreviewCard extends StatelessWidget {
   }
 }
 
-class _PatientBottomNav extends StatelessWidget {
-  final int currentIndex;
-
-  const _PatientBottomNav({required this.currentIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Colors.grey,
-      backgroundColor: Colors.white,
-      elevation: 8,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushReplacementNamed(context, AppRoutes.patientDashboard);
-            break;
-          case 1:
-            Navigator.pushNamed(context, AppRoutes.patientHistory);
-            break;
-          case 2:
-            Navigator.pushNamed(context, AppRoutes.recordPressurePhoto);
-            break;
-          case 3:
-            Navigator.pushNamed(context, AppRoutes.patientMessages);
-            break;
-          case 4:
-            Navigator.pushNamed(context, AppRoutes.patientProfile);
-            break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Accueil',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.analytics_outlined),
-          activeIcon: Icon(Icons.analytics),
-          label: 'Historique',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.camera_alt_outlined),
-          activeIcon: Icon(Icons.camera_alt),
-          label: 'Mesure',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.message_outlined),
-          activeIcon: Icon(Icons.message),
-          label: 'Messages',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profil',
-        ),
-      ],
-    );
-  }
-}

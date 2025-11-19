@@ -221,7 +221,10 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.patientHistory, arguments: {'patientId': _patientId});
+                            final patientId = AuthService().currentUserId;
+                            if (patientId != null) {
+                              Navigator.pushNamed(context, AppRoutes.patientHistory, arguments: {'patientId': patientId});
+                            }
                           },
                           child: const Text('📊 Voir l\'historique complet'),
                         ),

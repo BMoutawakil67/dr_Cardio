@@ -70,8 +70,8 @@ class _AddContextScreenState extends State<AddContextScreen> {
   }
 
   void _saveContext() {
-    final context = _buildContextString();
-    Navigator.pop(context, context);
+    final contextString = _buildContextString();
+    Navigator.pop(context, contextString);
   }
 
   @override

@@ -231,7 +231,7 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                       minScale: 0.98,
                       maxScale: 1.02,
                       child: Container(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
@@ -243,10 +243,13 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.favorite,
-                          size: 60,
-                          color: AppTheme.primaryBlue,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logoBase.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),

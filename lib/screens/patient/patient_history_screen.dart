@@ -1,3 +1,6 @@
+import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/repositories/medical_note_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
@@ -10,7 +13,30 @@ class PatientHistoryScreen extends StatefulWidget {
 }
 
 class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
+  final MedicalNoteRepository _medicalNoteRepository = MedicalNoteRepository();
+  late Future<List<MedicalNote>> _medicalNotesFuture;
   String _selectedPeriod = '7J';
+  String? _patientId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('patientId')) {
+      _patientId = args['patientId'];
+    } else {
+      // Use logged in user ID as fallback
+      _patientId = AuthService().currentUserId;
+    }
+
+    if (_patientId != null) {
+      _medicalNotesFuture = _medicalNoteRepository.getMedicalNotesByPatient(_patientId!);
+    } else {
+      _medicalNotesFuture = Future.value([]);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -113,23 +139,104 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _StatRow(label: 'Moyenne:', value: '14/9'),
-                    const Divider(),
-                    _StatRow(label: 'Min:', value: '12/8'),
-                    const Divider(),
-                    _StatRow(label: 'Max:', value: '16/10'),
-                    const Divider(),
-                    _StatRow(label: 'Mesures:', value: '24'),
-                    const Divider(),
-                    _StatRow(label: 'Tendance:', value: '↘ Stable'),
-                  ],
-                ),
-              ),
+            FutureBuilder<List<MedicalNote>>(
+              future: _medicalNotesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _StatRow(label: 'Moyenne:', value: '-/-'),
+                          const Divider(),
+                          _StatRow(label: 'Min:', value: '-/-'),
+                          const Divider(),
+                          _StatRow(label: 'Max:', value: '-/-'),
+                          const Divider(),
+                          _StatRow(label: 'Mesures:', value: '0'),
+                          const Divider(),
+                          _StatRow(label: 'Tendance:', value: '-'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                final notes = snapshot.data!;
+                final systolicValues = notes.map((n) => n.systolic).toList();
+                final diastolicValues = notes.map((n) => n.diastolic).toList();
+
+                final avgSystolic =
+                    (systolicValues.reduce((a, b) => a + b) / notes.length)
+                        .round();
+                final avgDiastolic =
+                    (diastolicValues.reduce((a, b) => a + b) / notes.length)
+                        .round();
+
+                final minSystolic = systolicValues.reduce((a, b) => a < b ? a : b);
+                final minDiastolic = diastolicValues.reduce((a, b) => a < b ? a : b);
+
+                final maxSystolic = systolicValues.reduce((a, b) => a > b ? a : b);
+                final maxDiastolic = diastolicValues.reduce((a, b) => a > b ? a : b);
+
+                // Calculate trend (simple: compare first half vs second half)
+                String trend = '-';
+                if (notes.length >= 4) {
+                  final halfIndex = notes.length ~/ 2;
+                  final firstHalfAvg = notes
+                          .sublist(0, halfIndex)
+                          .map((n) => n.systolic)
+                          .reduce((a, b) => a + b) /
+                      halfIndex;
+                  final secondHalfAvg = notes
+                          .sublist(halfIndex)
+                          .map((n) => n.systolic)
+                          .reduce((a, b) => a + b) /
+                      (notes.length - halfIndex);
+
+                  if (secondHalfAvg < firstHalfAvg - 2) {
+                    trend = '↓ En baisse';
+                  } else if (secondHalfAvg > firstHalfAvg + 2) {
+                    trend = '↑ En hausse';
+                  } else {
+                    trend = '→ Stable';
+                  }
+                }
+
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _StatRow(
+                            label: 'Moyenne:',
+                            value: '$avgSystolic/$avgDiastolic'),
+                        const Divider(),
+                        _StatRow(
+                            label: 'Min:',
+                            value: '$minSystolic/$minDiastolic'),
+                        const Divider(),
+                        _StatRow(
+                            label: 'Max:',
+                            value: '$maxSystolic/$maxDiastolic'),
+                        const Divider(),
+                        _StatRow(label: 'Mesures:', value: '${notes.length}'),
+                        const Divider(),
+                        _StatRow(label: 'Tendance:', value: trend),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
 
@@ -139,34 +246,40 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
+            FutureBuilder<List<MedicalNote>>(
+              future: _medicalNotesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text('Erreur de chargement des notes médicales.'),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Aucune note médicale.'));
+                }
 
-            _MeasureCard(
-              date: '27 Oct, 18:30',
-              systolic: 14,
-              diastolic: 9,
-              pulse: 72,
-              status: 'Normal',
-              statusColor: AppTheme.successGreen,
-              context: '💊 Losartan pris',
-            ),
-            const SizedBox(height: 12),
-            _MeasureCard(
-              date: '27 Oct, 08:15',
-              systolic: 13,
-              diastolic: 8,
-              pulse: 68,
-              status: 'Normal',
-              statusColor: AppTheme.successGreen,
-            ),
-            const SizedBox(height: 12),
-            _MeasureCard(
-              date: '26 Oct, 19:00',
-              systolic: 16,
-              diastolic: 10,
-              pulse: 80,
-              status: 'Légèrement élevée',
-              statusColor: AppTheme.warningOrange,
-              warning: '⚠️ Légèrement élevée',
+                final notes = snapshot.data!;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: notes.length,
+                  itemBuilder: (context, index) {
+                    final note = notes[index];
+                    return _MeasureCard(
+                      date: '${note.date.day}/${note.date.month}/${note.date.year}',
+                      systolic: note.systolic,
+                      diastolic: note.diastolic,
+                      pulse: note.heartRate,
+                      status: 'Normal', // TODO: Implement status logic
+                      statusColor: AppTheme.successGreen, // TODO: Implement color logic
+                      context: note.context,
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),

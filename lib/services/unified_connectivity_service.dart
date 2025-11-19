@@ -7,7 +7,8 @@ import 'connectivity_service_stub.dart'
     if (dart.library.io) 'mobile_connectivity_service.dart';
 
 class UnifiedConnectivityService {
-  static final UnifiedConnectivityService _instance = UnifiedConnectivityService._internal();
+  static final UnifiedConnectivityService _instance =
+      UnifiedConnectivityService._internal();
   factory UnifiedConnectivityService() => _instance;
   UnifiedConnectivityService._internal();
 
@@ -17,7 +18,7 @@ class UnifiedConnectivityService {
   void initialize() {
     _service = getConnectivityService();
     _service.initialize();
-    print('🌐 Unified Connectivity Service initialized');
+    debugPrint('🌐 Unified Connectivity Service initialized');
   }
 
   bool get isOnline => _service.isOnline;
@@ -45,7 +46,8 @@ class ConnectivityListener extends StatefulWidget {
 }
 
 class _ConnectivityListenerState extends State<ConnectivityListener> {
-  final UnifiedConnectivityService _connectivityService = UnifiedConnectivityService();
+  final UnifiedConnectivityService _connectivityService =
+      UnifiedConnectivityService();
   StreamSubscription<bool>? _subscription;
 
   @override

@@ -1,93 +1,205 @@
-# docteurcardio
+# 🫀 DocteurCardio - Application Mobile Flutter
 
+Application mobile de suivi de tension artérielle pour patients et cardiologues en Afrique de l'Ouest.
 
+## 📱 Description
 
-## Getting started
+DocteurCardio est une application qui permet:
+- **Aux patients:** Suivre leur tension artérielle, communiquer avec leur cardiologue, recevoir des alertes
+- **Aux cardiologues:** Suivre leurs patients à distance, recevoir des alertes, gérer des consultations
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## ✨ Fonctionnalités Implémentées
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### ✅ Écrans Opérationnels (10 écrans)
 
-## Add your files
+1. **Splash Screen** - Écran de démarrage avec animation
+2. **Onboarding** - 3 pages de présentation de l'app
+3. **Choix du Profil** - Sélection Patient ou Cardiologue
+4. **Connexion Patient** - Formulaire de connexion complet
+5. **Dashboard Patient** - Vue d'ensemble avec dernière mesure, actions rapides
+6. **Saisie Manuelle** - Enregistrement de la tension artérielle
+7. **Historique Patient** - Graphiques et statistiques
+8. **Profil Patient** - Informations complètes
+9. **Dashboard Cardiologue** - Vue d'ensemble pour le médecin
+10. **Écran Placeholder** - Pour les routes futures
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+### 🚧 Écrans Configurés (18 routes additionnelles)
+
+Toutes les routes du wireframe sont configurées et mènent à des écrans placeholder prêts à être développés.
+
+## 🎨 Design System
+
+### Palette de Couleurs
+- **Primaire:** Bleu #2B5B9E
+- **Secondaire:** Rouge #E74C3C
+- **Succès:** Vert #27AE60
+- **Avertissement:** Orange #F39C12
+
+### Composants
+- Bottom Navigation (Patient & Cardiologue)
+- Cards avec elevation
+- Buttons (Elevated, Outlined)
+- Input fields avec validation
+- Charts placeholders
+
+## 📂 Structure du Projet
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/ch-frontend/docteurcardio.git
-git branch -M main
-git push -uf origin main
+lib/
+├── main.dart                    # Point d'entrée + configuration routes
+├── config/
+│   └── app_theme.dart          # Thème et couleurs
+├── routes/
+│   └── app_routes.dart         # Définition des routes
+├── screens/
+│   ├── common/                 # 4 écrans communs
+│   ├── patient/                # 4 écrans patient
+│   ├── doctor/                 # 1 écran cardiologue
+│   └── utils/                  # 1 écran utilitaire
+└── widgets/                    # À développer
 ```
 
-## Integrate with your tools
+**Total:** 13 fichiers Dart créés
 
-- [ ] [Set up project integrations](https://gitlab.com/ch-frontend/docteurcardio/-/settings/integrations)
+## 🚀 Installation & Lancement
 
-## Collaborate with your team
+### Prérequis
+- Flutter SDK (>= 3.0.0)
+- Dart SDK
+- Android Studio / Xcode (pour émulateurs)
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Étapes
 
-## Test and Deploy
+1. **Cloner le projet**
+```bash
+cd /home/alao/Bureau/drCardio/dr_cardio
+```
 
-Use the built-in continuous integration in GitLab.
+2. **Installer les dépendances**
+```bash
+flutter pub get
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+3. **Vérifier l'installation**
+```bash
+flutter doctor
+```
 
-***
+4. **Lancer l'application**
+```bash
+flutter run
+```
 
-# Editing this README
+## 🗺️ Navigation
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Pour Tester l'App
 
-## Suggestions for a good README
+1. **Démarrage:** Splash Screen → Onboarding (3 pages)
+2. **Choix:** Sélectionner "Je suis patient"
+3. **Connexion:** Utiliser le formulaire de login
+4. **Dashboard:** Explorer les fonctionnalités
+   - Mesure manuelle de tension
+   - Historique avec graphiques
+   - Profil utilisateur
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## 📋 Routes Disponibles
 
-## Name
-Choose a self-explaining name for your project.
+### Patient
+- `/patient/dashboard` - Tableau de bord
+- `/patient/record-manual` - Saisie manuelle
+- `/patient/history` - Historique
+- `/patient/profile` - Profil
+- Et 9 autres routes avec placeholder
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### Cardiologue
+- `/doctor/dashboard` - Tableau de bord médecin
+- Et 7 autres routes avec placeholder
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Voir [STRUCTURE.md](STRUCTURE.md) pour la liste complète.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## 📖 Documentation
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+- **[STRUCTURE.md](STRUCTURE.md)** - Architecture détaillée du projet
+- **Wireframe complet** - 28 écrans spécifiés
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 🎯 Prochaines Étapes de Développement
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Phase 1 - Écrans Essentiels
+- [ ] Inscription Patient (formulaire multi-étapes)
+- [ ] Enregistrement par photo (avec OCR)
+- [ ] Système de messagerie
+- [ ] Liste et dossiers patients (vue cardiologue)
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Phase 2 - Fonctionnalités Backend
+- [ ] API REST (authentification, CRUD)
+- [ ] Base de données (patients, mesures, messages)
+- [ ] OCR pour lecture automatique des tensiomètres
+- [ ] Notifications push
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### Phase 3 - Features Avancées
+- [ ] Téléconsultation (vidéo)
+- [ ] Scanner QR Code
+- [ ] Paiement Mobile Money
+- [ ] Mode hors ligne avec synchronisation
+- [ ] Export PDF des rapports
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## 🛠️ Technologies Utilisées
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+- **Framework:** Flutter 3.x
+- **Langage:** Dart
+- **UI:** Material Design 3
+- **Navigation:** Named Routes
+- **Gestion d'état:** StatefulWidget (à migrer vers Provider/Riverpod)
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## 📱 Plateformes Supportées
 
-## License
-For open source projects, say how it is licensed.
+- ✅ Android
+- ✅ iOS
+- 🚧 Web (future)
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## 🧪 Tests
+
+```bash
+# Analyser le code
+flutter analyze
+
+# Lancer les tests (à développer)
+flutter test
+```
+
+## 📊 Statistiques du Projet
+
+- **Écrans implémentés:** 10
+- **Routes configurées:** 28
+- **Fichiers Dart:** 13
+- **Wireframes disponibles:** 28
+- **Palette de couleurs:** 10 couleurs définies
+
+## 🚦 Guide de Démarrage Rapide
+
+### Test Rapide
+
+```bash
+# Lancer l'app
+flutter run
+
+# Puis naviguer:
+# 1. Attendre le splash screen (3 sec)
+# 2. Swiper les 3 pages d'onboarding ou "Passer"
+# 3. Choisir "Je suis patient"
+# 4. Cliquer "SE CONNECTER" (formulaire pré-rempli)
+# 5. Explorer le dashboard patient
+```
+
+### Écrans Testables
+
+1. Dashboard → Actions rapides → "Saisie Manuel"
+2. Dashboard → Bottom Nav → "Historique"
+3. Dashboard → Bottom Nav → "Profil"
+4. Retour → Choix profil → "Je suis cardiologue" → Dashboard Médecin
+
+---
+
+**Status:** 🟢 Prêt pour développement
+**Version:** 1.0.0 (Structure initiale)
+**Dernière mise à jour:** 2025-11-11

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/models/patient_model.dart';
+import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:uuid/uuid.dart';
 
 class PatientRegisterScreen extends StatefulWidget {
   const PatientRegisterScreen({super.key});
@@ -19,7 +21,9 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
   DateTime? _birthDate;
+  String? _selectedGender;
 
   // Étape 2 - Sécurité
   final _formKey2 = GlobalKey<FormState>();
@@ -52,6 +56,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _paymentPhoneController.dispose();
@@ -115,29 +120,63 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
     }
   }
 
-  void _createAccount() {
+  Future<void> _createAccount() async {
+    // Split name into firstName and lastName
+    final nameParts = _nameController.text.trim().split(' ');
+    final firstName = nameParts.isNotEmpty ? nameParts[0] : '';
+    final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
     // Create a Patient object with the collected data
     final patient = Patient(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), // Example ID
-      name: _nameController.text,
-      email: _emailController.text,
-      phone: _phoneController.text,
+      id: const Uuid().v4(), // Generate unique UUID
+      firstName: firstName,
+      lastName: lastName,
+      email: _emailController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
       birthDate: _birthDate!,
-      password: _passwordController.text, // Handle securely!
-      biometricAuthEnabled: _enableBiometric,
-      subscriptionType: _selectedSubscription!,
-      doctorId: _selectedDoctor,
+      gender: _selectedGender ?? '',
+      profileImageUrl: null,
     );
 
-    // Simulate account creation
-    print('Creating account for: ${patient.name}');
-    print('Subscription: ${patient.subscriptionType}');
-    print('Doctor ID: ${patient.doctorId}');
+    try {
+      // Save patient to Hive database
+      final repository = PatientRepository();
+      await repository.addPatient(patient);
 
-    // In a real app, you would save the patient object to a database here.
+      debugPrint('✅ Account created for: ${patient.firstName} ${patient.lastName}');
+      debugPrint('   Email: ${patient.email}');
+      debugPrint('   ID: ${patient.id}');
+      debugPrint('   Subscription: $_selectedSubscription');
+      debugPrint('   Doctor: $_selectedDoctor');
 
-    // Navigate to dashboard
-    Navigator.pushReplacementNamed(context, AppRoutes.patientDashboard);
+      if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Compte créé avec succès! Connectez-vous maintenant.'),
+          backgroundColor: AppTheme.successGreen,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // Navigate to login screen
+      Navigator.pushReplacementNamed(context, AppRoutes.patientLogin);
+    } catch (e) {
+      debugPrint('❌ Error creating account: $e');
+
+      if (!mounted) return;
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur lors de la création du compte: $e'),
+          backgroundColor: AppTheme.errorRed,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -245,6 +284,49 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Veuillez entrer votre téléphone';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Adresse
+            TextFormField(
+              controller: _addressController,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.location_on_outlined),
+                labelText: 'Adresse',
+                hintText: 'Rue, Ville, Pays',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez entrer votre adresse';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Genre
+            DropdownButtonFormField<String>(
+              value: _selectedGender,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.person_outline),
+                labelText: 'Genre',
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Homme', child: Text('Homme')),
+                DropdownMenuItem(value: 'Femme', child: Text('Femme')),
+                DropdownMenuItem(value: 'Autre', child: Text('Autre')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedGender = value;
+                });
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez sélectionner votre genre';
                 }
                 return null;
               },

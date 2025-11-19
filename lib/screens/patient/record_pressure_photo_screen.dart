@@ -6,7 +6,8 @@ class RecordPressurePhotoScreen extends StatefulWidget {
   const RecordPressurePhotoScreen({super.key});
 
   @override
-  State<RecordPressurePhotoScreen> createState() => _RecordPressurePhotoScreenState();
+  State<RecordPressurePhotoScreen> createState() =>
+      _RecordPressurePhotoScreenState();
 }
 
 class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
@@ -225,7 +226,8 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                 child: LinearProgressIndicator(
                   value: 0.85,
                   backgroundColor: Colors.grey.shade200,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                 ),
               ),
               const SizedBox(height: 8),
@@ -356,17 +358,17 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
                     );
-                    if (date != null) {
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: _selectedTime,
-                      );
-                      if (time != null) {
-                        setState(() {
-                          _selectedDate = date;
-                          _selectedTime = time;
-                        });
-                      }
+                    if (date == null || !context.mounted) return;
+
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                    );
+                    if (time != null) {
+                      setState(() {
+                        _selectedDate = date;
+                        _selectedTime = time;
+                      });
                     }
                   },
                   child: const Text('Modifier'),
@@ -387,6 +389,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
             // Bouton Enregistrer
             ElevatedButton(
               onPressed: () {
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('✅ Mesure enregistrée avec succès'),
@@ -424,7 +427,6 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
 
   void _openGallery() {
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('📁 Fonctionnalité Galerie à implémenter'),

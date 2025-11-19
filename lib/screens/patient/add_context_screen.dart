@@ -8,12 +8,72 @@ class AddContextScreen extends StatefulWidget {
 }
 
 class _AddContextScreenState extends State<AddContextScreen> {
+  final _notesController = TextEditingController();
+  final _weightController = TextEditingController();
+
   final Map<String, bool> _medications = {
     'Amlodipine 5mg': false,
-    'Losartan 50mg': true,
+    'Losartan 50mg': false,
     'Aspirine 100mg': false,
   };
-  String _activity = 'Légère (marche)';
+  String _activity = 'Aucune';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Get existing context if provided
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('context')) {
+      final existingContext = args['context'] as String?;
+      if (existingContext != null && existingContext.isNotEmpty) {
+        _notesController.text = existingContext;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    _weightController.dispose();
+    super.dispose();
+  }
+
+  String _buildContextString() {
+    final parts = <String>[];
+
+    // Medications
+    final selectedMeds = _medications.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+    if (selectedMeds.isNotEmpty) {
+      parts.add('Médicaments: ${selectedMeds.join(", ")}');
+    }
+
+    // Weight
+    if (_weightController.text.isNotEmpty) {
+      parts.add('Poids: ${_weightController.text} kg');
+    }
+
+    // Activity
+    if (_activity != 'Aucune') {
+      parts.add('Activité: $_activity');
+    }
+
+    // Notes
+    if (_notesController.text.isNotEmpty) {
+      parts.add('Notes: ${_notesController.text}');
+    }
+
+    return parts.isEmpty ? '' : parts.join(' | ');
+  }
+
+  void _saveContext() {
+    final contextString = _buildContextString();
+    Navigator.pop(context, contextString);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,10 +100,12 @@ class _AddContextScreenState extends State<AddContextScreen> {
             _buildSectionTitle('⚖️ Poids (kg) - Optionnel'),
             const SizedBox(height: 10),
             TextField(
+              controller: _weightController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: '75',
+                hintText: '75',
+                labelText: 'Poids',
               ),
             ),
             const SizedBox(height: 20),
@@ -51,23 +113,22 @@ class _AddContextScreenState extends State<AddContextScreen> {
             const SizedBox(height: 10),
             _buildActivityList(),
             const SizedBox(height: 20),
-            _buildSectionTitle('🚶 Pas aujourd\'hui'),
-            const SizedBox(height: 10),
-            _buildSteps(),
-            const SizedBox(height: 20),
             _buildSectionTitle('📝 Notes (optionnel)'),
             const SizedBox(height: 10),
-            const TextField(
+            TextField(
+              controller: _notesController,
               maxLines: 3,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                hintText: 'Ressenti stress...',
+                hintText: 'Ex: Ressenti stress, après repas, au repos...',
               ),
             ),
-            const SizedBox(height: 20),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: _saveContext,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
               child: const Text('ENREGISTRER'),
             ),
           ],
@@ -143,31 +204,6 @@ class _AddContextScreenState extends State<AddContextScreen> {
           },
         ),
       ],
-    );
-  }
-
-  Widget _buildSteps() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '📱 5,247 pas',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            const Text('Objectif: 10,000'),
-            const SizedBox(height: 5),
-            LinearProgressIndicator(
-              value: 0.5247,
-              backgroundColor: Colors.grey[300],
-              color: Colors.blue,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

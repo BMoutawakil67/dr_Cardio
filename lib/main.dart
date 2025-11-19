@@ -1,3 +1,5 @@
+import 'package:dr_cardio/data/local/hive_database.dart';
+import 'package:dr_cardio/services/mock/mock_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
@@ -50,8 +52,14 @@ import 'package:dr_cardio/screens/common/offline_mode_screen.dart';
 // Écrans utilitaires
 import 'package:dr_cardio/screens/utils/placeholder_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive database
+  await HiveDatabase.init();
+
+  // Generate and save mock data
+  await MockService.generateAndSaveMockData();
 
   // Initialize unified connectivity service (works on web and mobile)
   UnifiedConnectivityService().initialize();
@@ -67,7 +75,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final UnifiedConnectivityService _connectivityService = UnifiedConnectivityService();
+  final UnifiedConnectivityService _connectivityService =
+      UnifiedConnectivityService();
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -175,8 +184,7 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.patientDocuments: (context) => const PatientDocumentsScreen(),
         AppRoutes.teleconsultation: (context) => const TeleconsultationScreen(),
         AppRoutes.patientProfile: (context) => const PatientProfileScreen(),
-        AppRoutes.patientEditProfile: (context) =>
-            const PatientEditProfileScreen(),
+        AppRoutes.patientEditProfile: (context) => const PatientEditProfileScreen(),
         AppRoutes.patientNotifications: (context) =>
             const NotificationsScreen(),
         AppRoutes.patientSettings: (context) => const PatientSettingsScreen(),

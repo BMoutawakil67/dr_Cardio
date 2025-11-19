@@ -2,8 +2,6 @@ import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:dr_cardio/models/doctor_model.dart';
 
 class DoctorProfileScreen extends StatefulWidget {
@@ -20,12 +18,14 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   void initState() {
     super.initState();
     _doctor = Doctor(
-      name: 'Dr. Mamadou KOUASSI',
+      id: 'doctor-demo-001',
+      firstName: 'Mamadou',
+      lastName: 'KOUASSI',
       specialty: 'Cardiologue',
-      orderNumber: 'MD-2024-789456',
       email: 'dr.kouassi@drcardio.ci',
-      phone: '+225 07 08 09 10 11',
-      office: 'Clinique du Coeur - Abidjan',
+      phoneNumber: '+225 07 08 09 10 11',
+      address: 'Clinique du Coeur - Abidjan',
+      profileImageUrl: null,
     );
   }
 
@@ -220,15 +220,13 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildInfoRow('Numéro d\'ordre', _doctor.orderNumber),
-                      const Divider(),
                       _buildInfoRow('Spécialité', _doctor.specialty),
                       const Divider(),
                       _buildInfoRow('Email', _doctor.email),
                       const Divider(),
-                      _buildInfoRow('Téléphone', _doctor.phone),
+                      _buildInfoRow('Téléphone', _doctor.phoneNumber),
                       const Divider(),
-                      _buildInfoRow('Cabinet', _doctor.office),
+                      _buildInfoRow('Adresse', _doctor.address),
                     ],
                   ),
                 ),

@@ -1,9 +1,37 @@
+import 'package:dr_cardio/models/doctor_model.dart';
+import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/models/patient_model.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/repositories/medical_note_repository.dart';
+import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 
-class DoctorDashboardScreen extends StatelessWidget {
+class DoctorDashboardScreen extends StatefulWidget {
   const DoctorDashboardScreen({super.key});
+
+  @override
+  State<DoctorDashboardScreen> createState() => _DoctorDashboardScreenState();
+}
+
+class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
+  final DoctorRepository _doctorRepository = DoctorRepository();
+  final PatientRepository _patientRepository = PatientRepository();
+  final MedicalNoteRepository _medicalNoteRepository = MedicalNoteRepository();
+
+  late Future<Doctor?> _doctorFuture;
+  late Future<List<Patient>> _patientsFuture;
+  late Future<List<MedicalNote>> _allNotesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // TODO: Replace with actual doctor ID from auth
+    _doctorFuture = _doctorRepository.getDoctor('doctor-001');
+    _patientsFuture = _patientRepository.getAllPatients();
+    _allNotesFuture = _medicalNoteRepository.getAllMedicalNotes();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,37 +43,50 @@ class DoctorDashboardScreen extends StatelessWidget {
         ),
         title: const Text('DocteurCardio'),
         actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.secondaryRed,
-                    shape: BoxShape.circle,
+          FutureBuilder<List<MedicalNote>>(
+            future: _allNotesFuture,
+            builder: (context, snapshot) {
+              final allNotes = snapshot.data ?? [];
+              final alertCount = allNotes.where((note) {
+                final isRecent = DateTime.now().difference(note.date).inDays <= 7;
+                final isHigh = note.systolic >= 16 || note.diastolic >= 10;
+                return isRecent && isHigh;
+              }).length;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {},
                   ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: const Text(
-                    '5',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                  if (alertCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppTheme.secondaryRed,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          alertCount > 9 ? '9+' : alertCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -55,9 +96,24 @@ class DoctorDashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Salutation
-            Text(
-              '👨‍⚕️ Bonjour Dr. Kouassi',
-              style: Theme.of(context).textTheme.headlineMedium,
+            FutureBuilder<Doctor?>(
+              future: _doctorFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return Text(
+                    '👨‍⚕️ Bonjour Dr.',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  );
+                }
+                final doctor = snapshot.data!;
+                return Text(
+                  '👨‍⚕️ Bonjour Dr. ${doctor.lastName}',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                );
+              },
             ),
             const SizedBox(height: 24),
 
@@ -67,33 +123,59 @@ class DoctorDashboardScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    value: '45',
-                    label: 'Patients',
-                    icon: Icons.people_outline,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    value: '3',
-                    label: 'Alertes',
-                    icon: Icons.warning_amber_outlined,
-                    color: AppTheme.warningOrange,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    value: '12',
-                    label: 'Messages',
-                    icon: Icons.message_outlined,
-                  ),
-                ),
-              ],
+            FutureBuilder<List<dynamic>>(
+              future: Future.wait([_patientsFuture, _allNotesFuture]),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Row(
+                    children: [
+                      Expanded(child: _StatCard(value: '-', label: 'Patients', icon: Icons.people_outline)),
+                      SizedBox(width: 12),
+                      Expanded(child: _StatCard(value: '-', label: 'Alertes', icon: Icons.warning_amber_outlined, color: AppTheme.warningOrange)),
+                      SizedBox(width: 12),
+                      Expanded(child: _StatCard(value: '-', label: 'Messages', icon: Icons.message_outlined)),
+                    ],
+                  );
+                }
+                final patients = (snapshot.data?[0] as List<Patient>?) ?? [];
+                final allNotes = (snapshot.data?[1] as List<MedicalNote>?) ?? [];
+
+                // Calculate alerts (high blood pressure: systolic >= 16 or diastolic >= 10)
+                final recentAlerts = allNotes.where((note) {
+                  final isRecent = DateTime.now().difference(note.date).inDays <= 7;
+                  final isHigh = note.systolic >= 16 || note.diastolic >= 10;
+                  return isRecent && isHigh;
+                }).length;
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        value: patients.length.toString(),
+                        label: 'Patients',
+                        icon: Icons.people_outline,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        value: recentAlerts.toString(),
+                        label: 'Alertes',
+                        icon: Icons.warning_amber_outlined,
+                        color: AppTheme.warningOrange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        value: '-', // TODO: Requires MessagesRepository
+                        label: 'Messages',
+                        icon: Icons.message_outlined,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 24),
 
@@ -109,12 +191,12 @@ class DoctorDashboardScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      '90,000 F CFA',
+                      '90,000 F CFA', // TODO: Replace with dynamic revenue
                       style: Theme.of(context).textTheme.headlineLarge,
                     ),
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
-                      value: 0.75,
+                      value: 0.75, // TODO: Replace with dynamic progress
                       backgroundColor: Colors.grey.shade200,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         Theme.of(context).colorScheme.primary,
@@ -122,7 +204,7 @@ class DoctorDashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '75% de l\'objectif',
+                      '75% de l\'objectif', // TODO: Replace with dynamic goal
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -149,18 +231,83 @@ class DoctorDashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            _AlertCard(
-              patientName: 'Jean Dupont',
-              reading: '18/11',
-              time: 'Il y a 15 min',
-              severity: 'high',
-            ),
-            const SizedBox(height: 12),
-            _AlertCard(
-              patientName: 'Marie Koffi',
-              reading: '16/10',
-              time: 'Il y a 2h',
-              severity: 'medium',
+            FutureBuilder<List<dynamic>>(
+              future: Future.wait([_allNotesFuture, _patientsFuture]),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final allNotes = (snapshot.data?[0] as List<MedicalNote>?) ?? [];
+                final patients = (snapshot.data?[1] as List<Patient>?) ?? [];
+
+                // Get high priority alerts (recent high blood pressure)
+                final alerts = allNotes.where((note) {
+                  final isRecent = DateTime.now().difference(note.date).inDays <= 7;
+                  final isHigh = note.systolic >= 16 || note.diastolic >= 10;
+                  return isRecent && isHigh;
+                }).toList();
+
+                // Sort by date (most recent first)
+                alerts.sort((a, b) => b.date.compareTo(a.date));
+
+                // Take top 3
+                final topAlerts = alerts.take(3).toList();
+
+                if (topAlerts.isEmpty) {
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(
+                        child: Text('✅ Aucune alerte prioritaire'),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: topAlerts.map((note) {
+                    final patient = patients.firstWhere(
+                      (p) => p.id == note.patientId,
+                      orElse: () => Patient(
+                        id: note.patientId,
+                        firstName: 'Patient',
+                        lastName: 'Inconnu',
+                        email: '',
+                        phoneNumber: '',
+                        address: '',
+                        birthDate: DateTime.now(),
+                        gender: '',
+                      ),
+                    );
+
+                    final duration = DateTime.now().difference(note.date);
+                    String timeAgo;
+                    if (duration.inMinutes < 60) {
+                      timeAgo = 'Il y a ${duration.inMinutes} min';
+                    } else if (duration.inHours < 24) {
+                      timeAgo = 'Il y a ${duration.inHours}h';
+                    } else {
+                      timeAgo = 'Il y a ${duration.inDays}j';
+                    }
+
+                    final severity = note.systolic >= 18 || note.diastolic >= 11
+                        ? 'high'
+                        : 'medium';
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _AlertCard(
+                        patientId: patient.id,
+                        patientName: '${patient.firstName} ${patient.lastName}',
+                        reading: '${note.systolic}/${note.diastolic}',
+                        time: timeAgo,
+                        severity: severity,
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
             const SizedBox(height: 24),
 
@@ -248,12 +395,14 @@ class _StatCard extends StatelessWidget {
 }
 
 class _AlertCard extends StatelessWidget {
+  final String patientId;
   final String patientName;
   final String reading;
   final String time;
   final String severity;
 
   const _AlertCard({
+    required this.patientId,
     required this.patientName,
     required this.reading,
     required this.time,
@@ -302,7 +451,11 @@ class _AlertCard extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.patientFile);
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.patientFile,
+                  arguments: {'patientId': patientId},
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding:

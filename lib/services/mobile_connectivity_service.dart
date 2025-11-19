@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'connectivity_service.dart';
 
 class MobileConnectivityService implements ConnectivityService {
-  static final MobileConnectivityService _instance = MobileConnectivityService._internal();
+  static final MobileConnectivityService _instance =
+      MobileConnectivityService._internal();
   factory MobileConnectivityService() => _instance;
   MobileConnectivityService._internal();
 
@@ -24,7 +26,7 @@ class MobileConnectivityService implements ConnectivityService {
   void initialize() async {
     final result = await _connectivity.checkConnectivity();
     _updateConnectionStatus(result);
-    print('📱 Mobile Connectivity initialized - Online: $_isOnline');
+    debugPrint('📱 Mobile Connectivity initialized - Online: $_isOnline');
 
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
       _updateConnectionStatus,
@@ -40,9 +42,9 @@ class MobileConnectivityService implements ConnectivityService {
 
     if (wasOnline != _isOnline) {
       if (_isOnline) {
-        print('✅ Mobile connection restored');
+        debugPrint('✅ Mobile connection restored');
       } else {
-        print('❌ Mobile connection lost');
+        debugPrint('❌ Mobile connection lost');
       }
       _connectionChangeController.add(_isOnline);
     }

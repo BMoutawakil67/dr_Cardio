@@ -50,7 +50,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                 });
               },
               title: Text(_notificationsEnabled ? 'Activé' : 'Désactivé'),
-              activeColor: AppTheme.primaryBlue,
+              activeTrackColor: AppTheme.primaryBlue,
             ),
           ),
 
@@ -70,8 +70,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                           });
                         }
                       : null,
-                  title: Text(_measureRemindersEnabled ? 'Activé' : 'Désactivé'),
-                  activeColor: AppTheme.primaryBlue,
+                  title:
+                      Text(_measureRemindersEnabled ? 'Activé' : 'Désactivé'),
+                  activeTrackColor: AppTheme.primaryBlue,
                 ),
                 if (_measureRemindersEnabled && _notificationsEnabled) ...[
                   Padding(
@@ -132,8 +133,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                           });
                         }
                       : null,
-                  title: Text(_medicationRemindersEnabled ? 'Activé' : 'Désactivé'),
-                  activeColor: AppTheme.primaryBlue,
+                  title: Text(
+                      _medicationRemindersEnabled ? 'Activé' : 'Désactivé'),
+                  activeTrackColor: AppTheme.primaryBlue,
                 ),
                 if (_medicationRemindersEnabled && _notificationsEnabled) ...[
                   Padding(
@@ -178,7 +180,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                         }
                       : null,
                   title: Text(_pressureAlertsEnabled ? 'Activé' : 'Désactivé'),
-                  activeColor: AppTheme.primaryBlue,
+                  activeTrackColor: AppTheme.primaryBlue,
                 ),
                 if (_pressureAlertsEnabled && _notificationsEnabled) ...[
                   Padding(
@@ -201,7 +203,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                             const Text('• Haute:'),
                             Text(
                               '> $_highSystolic/$_highDiastolic',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
                             IconButton(
                               icon: const Icon(Icons.edit, size: 20),
@@ -216,7 +219,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                             const Text('• Basse:'),
                             Text(
                               '< $_lowSystolic/$_lowDiastolic',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                             ),
                             IconButton(
                               icon: const Icon(Icons.edit, size: 20),
@@ -247,7 +251,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                     }
                   : null,
               title: Text(_doctorMessagesEnabled ? 'Activé' : 'Désactivé'),
-              activeColor: AppTheme.primaryBlue,
+              activeTrackColor: AppTheme.primaryBlue,
             ),
           ),
 
@@ -266,7 +270,7 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                     }
                   : null,
               title: Text(_healthNewsEnabled ? 'Activé' : 'Désactivé'),
-              activeColor: AppTheme.primaryBlue,
+              activeTrackColor: AppTheme.primaryBlue,
             ),
           ),
 
@@ -286,8 +290,9 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                           });
                         }
                       : null,
-                  title: Text(_appointmentRemindersEnabled ? 'Activé' : 'Désactivé'),
-                  activeColor: AppTheme.primaryBlue,
+                  title: Text(
+                      _appointmentRemindersEnabled ? 'Activé' : 'Désactivé'),
+                  activeTrackColor: AppTheme.primaryBlue,
                 ),
                 if (_appointmentRemindersEnabled && _notificationsEnabled) ...[
                   const Padding(
@@ -379,23 +384,23 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
     );
   }
 
-  void _addMeasureReminder() {
-    showTimePicker(
+  void _addMeasureReminder() async {
+    final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
-    ).then((time) {
-      if (time != null) {
-        setState(() {
-          _measureReminders.add(
-            MeasureReminder(
-              time: '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
-              label: 'Personnalisé',
-              enabled: true,
-            ),
-          );
-        });
-      }
-    });
+    );
+    if (time != null && mounted) {
+      setState(() {
+        _measureReminders.add(
+          MeasureReminder(
+            time:
+                '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+            label: 'Personnalisé',
+            enabled: true,
+          ),
+        );
+      });
+    }
   }
 
   void _manageMedications() {
@@ -420,12 +425,12 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
     );
   }
 
-  void _editThreshold(String type) {
+  void _editThreshold(String type) async {
     final isHigh = type == 'high';
     final currentSystolic = isHigh ? _highSystolic : _lowSystolic;
     final currentDiastolic = isHigh ? _highDiastolic : _lowDiastolic;
 
-    showDialog(
+    final result = await showDialog<Map<String, int>>(
       context: context,
       builder: (context) {
         int newSystolic = currentSystolic;
@@ -442,7 +447,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                   suffixText: 'mmHg',
                 ),
                 keyboardType: TextInputType.number,
-                controller: TextEditingController(text: currentSystolic.toString()),
+                controller:
+                    TextEditingController(text: currentSystolic.toString()),
                 onChanged: (value) {
                   newSystolic = int.tryParse(value) ?? currentSystolic;
                 },
@@ -454,7 +460,8 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
                   suffixText: 'mmHg',
                 ),
                 keyboardType: TextInputType.number,
-                controller: TextEditingController(text: currentDiastolic.toString()),
+                controller:
+                    TextEditingController(text: currentDiastolic.toString()),
                 onChanged: (value) {
                   newDiastolic = int.tryParse(value) ?? currentDiastolic;
                 },
@@ -468,16 +475,10 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {
-                  if (isHigh) {
-                    _highSystolic = newSystolic;
-                    _highDiastolic = newDiastolic;
-                  } else {
-                    _lowSystolic = newSystolic;
-                    _lowDiastolic = newDiastolic;
-                  }
+                Navigator.pop(context, {
+                  'systolic': newSystolic,
+                  'diastolic': newDiastolic,
                 });
-                Navigator.pop(context);
               },
               child: const Text('Enregistrer'),
             ),
@@ -485,9 +486,22 @@ class _PatientSettingsScreenState extends State<PatientSettingsScreen> {
         );
       },
     );
+
+    if (result != null && mounted) {
+      setState(() {
+        if (isHigh) {
+          _highSystolic = result['systolic'] ?? _highSystolic;
+          _highDiastolic = result['diastolic'] ?? _highDiastolic;
+        } else {
+          _lowSystolic = result['systolic'] ?? _lowSystolic;
+          _lowDiastolic = result['diastolic'] ?? _lowDiastolic;
+        }
+      });
+    }
   }
 
   void _saveSettings() {
+    if (!mounted) return;
     // TODO: Enregistrer les paramètres dans le stockage local ou API
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

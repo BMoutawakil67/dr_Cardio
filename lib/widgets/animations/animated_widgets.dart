@@ -293,3 +293,124 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
     );
   }
 }
+
+/// Custom page route with smooth fade + slide transition
+/// Inspiré de Reflectly pour des transitions élégantes entre écrans
+class FadeSlidePageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  final Duration transitionDuration;
+  final Curve curve;
+
+  FadeSlidePageRoute({
+    required this.page,
+    this.transitionDuration = const Duration(milliseconds: 400),
+    this.curve = Curves.easeInOutCubic,
+  }) : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            // Fade animation
+            final fadeAnimation = Tween<double>(
+              begin: 0.0,
+              end: 1.0,
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: curve,
+              ),
+            );
+
+            // Slide animation (from right to center)
+            final slideAnimation = Tween<Offset>(
+              begin: const Offset(0.1, 0.0),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: curve,
+              ),
+            );
+
+            // Combine fade and slide
+            return FadeTransition(
+              opacity: fadeAnimation,
+              child: SlideTransition(
+                position: slideAnimation,
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: transitionDuration,
+          reverseTransitionDuration: transitionDuration,
+        );
+}
+
+/// Custom page route with scale + fade transition (pour les modals)
+/// Animation similaire à Material Design mais plus douce
+class ScaleFadePageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  final Duration transitionDuration;
+
+  ScaleFadePageRoute({
+    required this.page,
+    this.transitionDuration = const Duration(milliseconds: 350),
+  }) : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final fadeAnimation = Tween<double>(
+              begin: 0.0,
+              end: 1.0,
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              ),
+            );
+
+            final scaleAnimation = Tween<double>(
+              begin: 0.92,
+              end: 1.0,
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              ),
+            );
+
+            return FadeTransition(
+              opacity: fadeAnimation,
+              child: ScaleTransition(
+                scale: scaleAnimation,
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: transitionDuration,
+          reverseTransitionDuration: transitionDuration,
+          opaque: false,
+          barrierColor: Colors.black54,
+        );
+}
+
+/// Helper extension pour naviguer avec des transitions personnalisées
+extension NavigatorExtension on BuildContext {
+  /// Navigation avec transition fade + slide
+  Future<T?> pushWithFadeSlide<T>(Widget page) {
+    return Navigator.of(this).push<T>(
+      FadeSlidePageRoute(page: page),
+    );
+  }
+
+  /// Navigation avec transition scale + fade (pour modals)
+  Future<T?> pushModalWithScaleFade<T>(Widget page) {
+    return Navigator.of(this).push<T>(
+      ScaleFadePageRoute(page: page),
+    );
+  }
+
+  /// Remplacement avec transition fade + slide
+  Future<T?> pushReplacementWithFadeSlide<T, TO>(Widget page) {
+    return Navigator.of(this).pushReplacement<T, TO>(
+      FadeSlidePageRoute(page: page),
+    );
+  }
+}

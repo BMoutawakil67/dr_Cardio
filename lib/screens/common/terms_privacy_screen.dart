@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 
 class TermsPrivacyScreen extends StatelessWidget {
   const TermsPrivacyScreen({super.key});
@@ -16,7 +17,9 @@ class TermsPrivacyScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Last Updated
-            Container(
+            FadeInSlideUp(
+              delay: 0,
+              child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppTheme.primaryBlue.withValues(alpha: 0.1),
@@ -36,11 +39,14 @@ class TermsPrivacyScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              ),
             ),
             const SizedBox(height: 24),
 
             // Terms of Use
-            _buildSection(
+            FadeInSlideUp(
+              delay: 200,
+              child: _buildSection(
               '📜 Conditions Générales d\'Utilisation',
               [
                 _buildParagraph(
@@ -60,11 +66,14 @@ class TermsPrivacyScreen extends StatelessWidget {
                   'DocteurCardio est un outil de suivi et ne remplace pas une consultation médicale. En cas d\'urgence, contactez immédiatement les services d\'urgence (185).',
                 ),
               ],
+              ),
             ),
             const SizedBox(height: 24),
 
             // Privacy Policy
-            _buildSection(
+            FadeInSlideUp(
+              delay: 400,
+              child: _buildSection(
               '🔒 Politique de Confidentialité',
               [
                 _buildParagraph(
@@ -88,11 +97,14 @@ class TermsPrivacyScreen extends StatelessWidget {
                   'Vous avez le droit de:\n• Accéder à vos données\n• Modifier vos données\n• Supprimer vos données\n• Exporter vos données',
                 ),
               ],
+              ),
             ),
             const SizedBox(height: 24),
 
             // Data Security
-            _buildSection(
+            FadeInSlideUp(
+              delay: 600,
+              child: _buildSection(
               '🛡️ Sécurité des Données',
               [
                 _buildParagraph(
@@ -108,11 +120,14 @@ class TermsPrivacyScreen extends StatelessWidget {
                   'L\'accès à votre compte est protégé par un mot de passe. Nous vous recommandons d\'utiliser un mot de passe fort.',
                 ),
               ],
+              ),
             ),
             const SizedBox(height: 24),
 
             // Contact
-            Card(
+            FadeInSlideUp(
+              delay: 800,
+              child: Card(
               color: AppTheme.primaryBlue.withValues(alpha: 0.05),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -143,6 +158,7 @@ class TermsPrivacyScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
               ),
             ),
             const SizedBox(height: 32),

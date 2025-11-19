@@ -3,6 +3,7 @@ import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 import 'package:uuid/uuid.dart';
 
 class RecordPressureManualScreen extends StatefulWidget {
@@ -245,8 +246,17 @@ class _RecordPressureManualScreenState
 
             // Bouton Ajouter contexte
             OutlinedButton.icon(
-              onPressed: () {
-                _showContextDialog();
+              onPressed: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  AppRoutes.addContext,
+                  arguments: {'context': _context},
+                );
+                if (result != null && result is String) {
+                  setState(() {
+                    _context = result;
+                  });
+                }
               },
               icon: const Icon(Icons.note_add_outlined),
               label: Text(_context.isEmpty
@@ -294,41 +304,6 @@ class _RecordPressureManualScreenState
     );
   }
 
-  void _showContextDialog() {
-    final contextController = TextEditingController(text: _context);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ajouter un contexte'),
-        content: TextField(
-          controller: contextController,
-          decoration: const InputDecoration(
-            labelText: 'Contexte',
-            hintText: 'Ex: Après le repas, au repos, stressé...',
-          ),
-          maxLines: 3,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _context = contextController.text.trim();
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _saveMeasurement() async {
     if (!mounted) return;
 
@@ -351,8 +326,8 @@ class _RecordPressureManualScreenState
         _selectedTime.minute,
       );
 
-      // TODO: Get actual patient ID from auth
-      const patientId = 'patient-001';
+      // Get actual patient ID from auth
+      final patientId = AuthService().currentUserId ?? 'patient-001';
       const doctorId = 'doctor-001';
 
       final medicalNote = MedicalNote(

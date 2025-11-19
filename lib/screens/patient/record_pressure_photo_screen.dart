@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:dr_cardio/models/medical_note_model.dart';
+import 'package:dr_cardio/repositories/medical_note_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 
 class RecordPressurePhotoScreen extends StatefulWidget {
   const RecordPressurePhotoScreen({super.key});
@@ -14,12 +19,18 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
   bool _isProcessing = false;
   bool _isValidated = false;
 
+  // Image picker
+  final ImagePicker _picker = ImagePicker();
+  XFile? _capturedImage;
+  final MedicalNoteRepository _repository = MedicalNoteRepository();
+
   // Valeurs détectées par OCR (simulées)
   final _systolicController = TextEditingController(text: '14');
   final _diastolicController = TextEditingController(text: '9');
   final _pulseController = TextEditingController(text: '72');
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
+  String _context = '';
 
   @override
   void dispose() {
@@ -205,7 +216,17 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                child: _capturedImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(_capturedImage!.path),
+                          fit: BoxFit.cover,
+                          width: 200,
+                          height: 150,
+                        ),
+                      )
+                    : const Icon(Icons.image, size: 60, color: Colors.grey),
               ),
               const SizedBox(height: 32),
 
@@ -264,6 +285,25 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Photo capturée
+            if (_capturedImage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                height: 180,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(_capturedImage!.path),
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
+                ),
+              ),
+
             // Message succès
             Container(
               padding: const EdgeInsets.all(16),
@@ -379,25 +419,30 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
 
             // Bouton Ajouter contexte
             OutlinedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.addContext);
+              onPressed: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  AppRoutes.addContext,
+                  arguments: {'context': _context},
+                );
+                if (result != null && result is String) {
+                  setState(() {
+                    _context = result;
+                  });
+                }
               },
-              child: const Text('AJOUTER CONTEXTE\n(optionnel)'),
+              child: Text(
+                _context.isEmpty
+                    ? 'AJOUTER CONTEXTE\n(optionnel)'
+                    : '✅ CONTEXTE AJOUTÉ',
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 16),
 
             // Bouton Enregistrer
             ElevatedButton(
-              onPressed: () {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ Mesure enregistrée avec succès'),
-                    backgroundColor: AppTheme.successGreen,
-                  ),
-                );
-                Navigator.pop(context);
-              },
+              onPressed: () => _saveMeasure(),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -409,29 +454,141 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
     );
   }
 
-  void _capturePhoto() {
-    setState(() {
-      _isProcessing = true;
-    });
+  Future<void> _saveMeasure() async {
+    if (!mounted) return;
 
-    // Simuler le traitement OCR (3 secondes)
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-          _isValidated = true;
-        });
+    try {
+      // Validation des champs
+      final systolic = int.tryParse(_systolicController.text);
+      final diastolic = int.tryParse(_diastolicController.text);
+      final heartRate = int.tryParse(_pulseController.text);
+
+      if (systolic == null || diastolic == null || heartRate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Veuillez entrer des valeurs valides'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+        return;
       }
-    });
+
+      // Combine date et time
+      final measurementDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
+      // Get patient ID
+      final patientId = AuthService().currentUserId ?? 'patient-001';
+
+      // Create medical note
+      final note = MedicalNote(
+        id: 'note-${DateTime.now().millisecondsSinceEpoch}',
+        patientId: patientId,
+        doctorId: 'doctor-001', // Default doctor
+        date: measurementDate,
+        systolic: systolic,
+        diastolic: diastolic,
+        heartRate: heartRate,
+        context: _context,
+        photoUrl: _capturedImage?.path, // Store image path
+      );
+
+      // Save to Hive
+      await _repository.addMedicalNote(note);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Mesure enregistrée avec succès'),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate success
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
   }
 
-  void _openGallery() {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('📁 Fonctionnalité Galerie à implémenter'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _capturePhoto() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _capturedImage = image;
+          _isProcessing = true;
+        });
+
+        // Simuler le traitement OCR (2 secondes)
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+            _isValidated = true;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur lors de la capture: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _capturedImage = image;
+          _isProcessing = true;
+        });
+
+        // Simuler le traitement OCR (2 secondes)
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+            _isValidated = true;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur lors de la sélection: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
   }
 }

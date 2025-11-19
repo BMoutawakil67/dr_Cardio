@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:dr_cardio/models/doctor_model.dart';
 import 'package:dr_cardio/repositories/doctor_repository.dart';
 import 'package:dr_cardio/services/auth_service.dart';
+import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 
 class DoctorProfileScreen extends StatefulWidget {
   const DoctorProfileScreen({super.key});
@@ -48,6 +49,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       return Scaffold(
         appBar: AppBar(title: const Text('Mon Profil')),
         body: const Center(child: Text('Erreur: Profil non trouvé')),
+        bottomNavigationBar: const DoctorBottomNav(currentIndex: 4),
       );
     }
 
@@ -107,18 +109,18 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Dr. Mamadou KOUASSI',
-                    style: TextStyle(
+                  Text(
+                    'Dr. ${doctor.firstName} ${doctor.lastName}',
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Cardiologue',
-                    style: TextStyle(
+                  Text(
+                    doctor.specialty,
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.white,
                     ),
@@ -502,6 +504,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: const DoctorBottomNav(currentIndex: 4),
     );
   }
 

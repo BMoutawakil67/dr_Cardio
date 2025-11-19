@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 
 class DoctorPatientsScreen extends StatefulWidget {
   const DoctorPatientsScreen({super.key});
@@ -176,6 +177,7 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const DoctorBottomNav(currentIndex: 1),
     );
   }
 

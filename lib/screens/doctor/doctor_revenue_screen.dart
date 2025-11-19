@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 
 class DoctorRevenueScreen extends StatelessWidget {
   const DoctorRevenueScreen({super.key});
@@ -17,6 +18,7 @@ class DoctorRevenueScreen extends StatelessWidget {
           _buildRecentTransactions(),
         ],
       ),
+      bottomNavigationBar: const DoctorBottomNav(currentIndex: 3),
     );
   }
 

@@ -1,5 +1,5 @@
-import 'package:dr_cardio/models/doctor.dart';
-import 'package:dr_cardio/models/patient.dart';
+import 'package:dr_cardio/models/doctor_model.dart';
+import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/doctor_repository.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:flutter/material.dart';
@@ -421,4 +421,3 @@ class _InfoTile extends StatelessWidget {
     );
   }
 }
-'''

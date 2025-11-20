@@ -156,18 +156,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   // Si depuis l'inscription, retourner true pour continuer le flux
                   Navigator.pop(context, true);
                 } else {
-                  // Sinon, rediriger vers le dashboard patient
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRoutes.patientDashboard,
-                    (route) => false,
-                  );
+                  // Sinon, retourner true pour indiquer que le paiement est réussi
+                  Navigator.pop(context, true);
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.successGreen,
               ),
-              child: Text(_fromRegistration ? 'CONTINUER' : 'ACCÉDER À MON COMPTE'),
+              child: Text(_fromRegistration ? 'CONTINUER' : 'RETOUR AU PROFIL'),
             ),
           ],
         ),
@@ -221,8 +217,236 @@ class _PaymentScreenState extends State<PaymentScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            // ... rest of the payment UI
+
+            // MTN Mobile Money
+            _buildPaymentMethodCard(
+              'mtn',
+              '📱 MTN Mobile Money',
+              Icons.phone_android,
+              const Color(0xFFFFCC00),
+            ),
+            const SizedBox(height: 12),
+
+            // Moov Money
+            _buildPaymentMethodCard(
+              'moov',
+              '📱 Moov Money',
+              Icons.phone_android,
+              const Color(0xFF009FE3),
+            ),
+            const SizedBox(height: 12),
+
+            // Carte bancaire
+            _buildPaymentMethodCard(
+              'card',
+              '💳 Carte bancaire',
+              Icons.credit_card,
+              AppTheme.primaryBlue,
+            ),
+            const SizedBox(height: 24),
+
+            // Champs de saisie selon le mode sélectionné
+            if (_selectedPaymentMethod == 'mtn' || _selectedPaymentMethod == 'moov')
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Numéro de téléphone',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: '+229 XX XX XX XX',
+                      prefixIcon: const Icon(Icons.phone),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+
+            if (_selectedPaymentMethod == 'card')
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Informations de la carte',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _cardNumberController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: '1234 5678 9012 3456',
+                      labelText: 'Numéro de carte',
+                      prefixIcon: const Icon(Icons.credit_card),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cardExpiryController,
+                          keyboardType: TextInputType.datetime,
+                          decoration: InputDecoration(
+                            hintText: 'MM/AA',
+                            labelText: 'Expiration',
+                            prefixIcon: const Icon(Icons.calendar_today),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cardCvvController,
+                          keyboardType: TextInputType.number,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            hintText: 'CVV',
+                            labelText: 'CVV',
+                            prefixIcon: const Icon(Icons.lock),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+
+            // Renouvellement automatique
+            CheckboxListTile(
+              value: _autoRenewal,
+              onChanged: (value) {
+                setState(() {
+                  _autoRenewal = value ?? true;
+                });
+              },
+              title: const Text('Renouvellement automatique'),
+              subtitle: const Text('Votre abonnement sera renouvelé chaque mois'),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+            const SizedBox(height: 16),
+
+            // CGU
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'En payant, vous acceptez les ',
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () => _showTermsDialog('CGU'),
+                  child: const Text('CGU', style: TextStyle(decoration: TextDecoration.underline)),
+                ),
+                Text(' et ', style: Theme.of(context).textTheme.bodySmall),
+                TextButton(
+                  onPressed: () => _showTermsDialog('CGV'),
+                  child: const Text('CGV', style: TextStyle(decoration: TextDecoration.underline)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Bouton de paiement
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _processPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'PAYER $_amount FCFA',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodCard(
+    String methodId,
+    String title,
+    IconData icon,
+    Color color,
+  ) {
+    final isSelected = _selectedPaymentMethod == methodId;
+
+    return Card(
+      elevation: isSelected ? 4 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? AppTheme.primaryBlue : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedPaymentMethod = methodId;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              if (isSelected)
+                const Icon(
+                  Icons.check_circle,
+                  color: AppTheme.primaryBlue,
+                ),
+            ],
+          ),
         ),
       ),
     );

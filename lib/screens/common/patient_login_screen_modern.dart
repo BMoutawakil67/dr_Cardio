@@ -130,36 +130,38 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
     setState(() => _isLoading = true);
 
     try {
-      final userInfo = await _biometricAuthService.authenticateAndGetUserInfo();
+      // Authentifier avec biométrie
+      final authenticated = await _biometricAuthService.authenticate(
+        reason: 'Authentifiez-vous pour accéder à votre compte patient',
+      );
 
-      if (userInfo == null) {
+      if (!authenticated) {
         throw Exception('Authentification échouée');
       }
 
-      final userId = userInfo['userId'] as String;
-      final userType = userInfo['userType'] as String?;
-
-      if (userType != 'patient') {
-        throw Exception('Ce compte n\'est pas un compte patient');
-      }
-
-      if (!mounted) return;
-
-      // Récupérer les informations du patient
+      // Récupérer le premier patient de la liste
       final repository = PatientRepository();
-      final patient = await repository.getPatient(userId);
+      final patients = await repository.getAllPatients();
 
-      if (patient == null) {
-        throw Exception('Compte introuvable');
+      if (patients.isEmpty) {
+        throw Exception('Aucun patient trouvé');
       }
+
+      final firstPatient = patients.first;
 
       if (!mounted) return;
 
-      AuthService().login(patient.id, 'patient');
+      // Se connecter avec le premier patient
+      AuthService().login(firstPatient.id, 'patient');
+
+      // Activer l'authentification biométrique pour les prochaines fois
+      if (_isBiometricAvailable) {
+        await _biometricAuthService.enableBiometricAuth(firstPatient.id, 'patient');
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Bienvenue ${patient.firstName}!'),
+          content: Text('✅ Bienvenue ${firstPatient.firstName}!'),
           backgroundColor: AppTheme.successGreen,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,

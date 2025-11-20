@@ -186,12 +186,21 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   child: StreamBuilder<List<MedicalNote>>(
                   stream: _medicalNotesStream,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                    // Afficher le loader seulement si on n'a pas de données ET qu'on est en waiting
+                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                      return Card(
+                        child: Container(
+                          height: 200,
+                          alignment: Alignment.center,
+                          child: const CircularProgressIndicator(),
+                        ),
+                      );
                     }
+                    // Si on a des données, afficher la dernière mesure
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                       return _LastMeasureCard(note: snapshot.data!.first);
                     }
+                    // Sinon, afficher l'état vide
                     return const _LastMeasureCard(); // Show empty state
                   },
                   ),

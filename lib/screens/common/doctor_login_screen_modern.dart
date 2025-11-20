@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
+import 'package:dr_cardio/services/biometric_auth_service.dart';
+import 'package:local_auth/local_auth.dart';
 
 class DoctorLoginScreenModern extends StatefulWidget {
   const DoctorLoginScreenModern({super.key});
@@ -15,9 +19,31 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _orderNumberController = TextEditingController();
+  final BiometricAuthService _biometricAuthService = BiometricAuthService();
+  final DoctorRepository _doctorRepository = DoctorRepository();
   bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
+  bool _isBiometricAvailable = false;
+  List<BiometricType> _availableBiometrics = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final isAvailable = await _biometricAuthService.isBiometricAvailable();
+    final biometrics = await _biometricAuthService.getAvailableBiometrics();
+
+    if (mounted) {
+      setState(() {
+        _isBiometricAvailable = isAvailable && biometrics.isNotEmpty;
+        _availableBiometrics = biometrics;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -56,6 +82,83 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
         SnackBar(
           content: Text('❌ Erreur: $e'),
           backgroundColor: AppTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    if (!_isBiometricAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('❌ Authentification biométrique non disponible sur cet appareil'),
+          backgroundColor: AppTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Authentifier avec biométrie
+      final authenticated = await _biometricAuthService.authenticate(
+        reason: 'Authentifiez-vous pour accéder à votre compte cardiologue',
+      );
+
+      if (!authenticated) {
+        throw Exception('Authentification échouée');
+      }
+
+      // Récupérer le premier cardiologue de la liste
+      final doctors = await _doctorRepository.getAllDoctors();
+
+      if (doctors.isEmpty) {
+        throw Exception('Aucun cardiologue trouvé');
+      }
+
+      final firstDoctor = doctors.first;
+
+      if (!mounted) return;
+
+      // Se connecter avec le premier cardiologue
+      AuthService().login(firstDoctor.id, 'doctor');
+
+      // Activer l'authentification biométrique pour les prochaines fois
+      if (_isBiometricAvailable) {
+        await _biometricAuthService.enableBiometricAuth(firstDoctor.id, 'doctor');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Bienvenue Dr. ${firstDoctor.firstName}!'),
+          backgroundColor: AppTheme.successGreen,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppTheme.errorRed,
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -342,6 +445,39 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // Biométrie
+                  if (_isBiometricAvailable)
+                    FadeInSlideUp(
+                      delay: 1600,
+                      child: PressableButton(
+                        onPressed: _isLoading ? null : _handleBiometricLogin,
+                        child: Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white, width: 2),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.fingerprint, color: Colors.white, size: 28),
+                              SizedBox(width: 12),
+                              Text(
+                                'Connexion biométrique',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
                   const SizedBox(height: 24),
 
                   // Lien inscription

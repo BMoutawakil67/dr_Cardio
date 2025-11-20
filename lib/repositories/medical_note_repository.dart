@@ -65,6 +65,22 @@ class MedicalNoteRepository {
     }
   }
 
+  /// Watch medical notes for a specific patient and get updates in real-time
+  Stream<List<MedicalNote>> watchMedicalNotesByPatient(String patientId) {
+    return _box.watch().map((_) {
+      try {
+        return _box.values.where((note) => note.patientId == patientId).toList()
+          ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
+      } catch (e) {
+        logger.e('Error watching medical notes by patient: $e');
+        if (kDebugMode) {
+          print('Error watching medical notes by patient: $e');
+        }
+        return <MedicalNote>[];
+      }
+    });
+  }
+
   Future<bool> updateMedicalNote(MedicalNote medicalNote) async {
     try {
       final index = _findIndex(medicalNote.id);

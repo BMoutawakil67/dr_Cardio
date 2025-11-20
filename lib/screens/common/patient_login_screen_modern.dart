@@ -42,20 +42,8 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
         _availableBiometrics = biometrics;
       });
 
-      // Si l'utilisateur a déjà enregistré ses empreintes, proposer automatiquement
-      if (_isBiometricAvailable) {
-        final lastUserId = await _biometricAuthService.getLastBiometricUserId();
-        if (lastUserId != null) {
-          final isEnabled = await _biometricAuthService.isBiometricEnabled(lastUserId);
-          if (isEnabled) {
-            // Attendre un petit moment pour que l'UI se charge
-            await Future.delayed(const Duration(milliseconds: 500));
-            if (mounted) {
-              _handleBiometricLogin();
-            }
-          }
-        }
-      }
+      // Note: On ne lance plus automatiquement l'authentification biométrique
+      // L'utilisateur doit cliquer sur le bouton pour l'activer
     }
   }
 

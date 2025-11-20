@@ -188,39 +188,49 @@ class _AddContextScreenState extends State<AddContextScreen> {
       ),
     );
 
-    if (result == true && mounted) {
-      final patientId = AuthService().currentUserId ?? '';
-      final medication = Medication(
-        id: const Uuid().v4(),
-        name: nameController.text.trim(),
-        dosage: dosageController.text.trim(),
-        frequency: frequencyController.text.trim().isEmpty
-            ? null
-            : frequencyController.text.trim(),
-        notes: notesController.text.trim().isEmpty
-            ? null
-            : notesController.text.trim(),
-        patientId: patientId,
-        createdAt: DateTime.now(),
-      );
-
-      await _medicationRepository.addMedication(medication);
-      await _loadMedications();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ ${medication.displayName} ajouté'),
-            backgroundColor: AppTheme.successGreen,
-          ),
-        );
-      }
-    }
+    // Dispose controllers first
+    final name = nameController.text.trim();
+    final dosage = dosageController.text.trim();
+    final frequency = frequencyController.text.trim();
+    final notes = notesController.text.trim();
 
     nameController.dispose();
     dosageController.dispose();
     frequencyController.dispose();
     notesController.dispose();
+
+    if (result == true && mounted) {
+      final patientId = AuthService().currentUserId ?? '';
+      final medication = Medication(
+        id: const Uuid().v4(),
+        name: name,
+        dosage: dosage,
+        frequency: frequency.isEmpty ? null : frequency,
+        notes: notes.isEmpty ? null : notes,
+        patientId: patientId,
+        createdAt: DateTime.now(),
+      );
+
+      await _medicationRepository.addMedication(medication);
+
+      // Use a post-frame callback to ensure we're not in the middle of a build
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _loadMedications();
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ ${medication.displayName} ajouté'),
+                backgroundColor: AppTheme.successGreen,
+              ),
+            );
+          }
+        });
+      }
+    }
   }
 
   Future<void> _showEditMedicationDialog(Medication medication) async {
@@ -308,36 +318,46 @@ class _AddContextScreenState extends State<AddContextScreen> {
       ),
     );
 
-    if (result == true && mounted) {
-      final updatedMedication = medication.copyWith(
-        name: nameController.text.trim(),
-        dosage: dosageController.text.trim(),
-        frequency: frequencyController.text.trim().isEmpty
-            ? null
-            : frequencyController.text.trim(),
-        notes: notesController.text.trim().isEmpty
-            ? null
-            : notesController.text.trim(),
-        updatedAt: DateTime.now(),
-      );
-
-      await _medicationRepository.updateMedication(updatedMedication);
-      await _loadMedications();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ ${updatedMedication.displayName} mis à jour'),
-            backgroundColor: AppTheme.successGreen,
-          ),
-        );
-      }
-    }
+    // Dispose controllers first
+    final name = nameController.text.trim();
+    final dosage = dosageController.text.trim();
+    final frequency = frequencyController.text.trim();
+    final notes = notesController.text.trim();
 
     nameController.dispose();
     dosageController.dispose();
     frequencyController.dispose();
     notesController.dispose();
+
+    if (result == true && mounted) {
+      final updatedMedication = medication.copyWith(
+        name: name,
+        dosage: dosage,
+        frequency: frequency.isEmpty ? null : frequency,
+        notes: notes.isEmpty ? null : notes,
+        updatedAt: DateTime.now(),
+      );
+
+      await _medicationRepository.updateMedication(updatedMedication);
+
+      // Use a post-frame callback to ensure we're not in the middle of a build
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _loadMedications();
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ ${updatedMedication.displayName} mis à jour'),
+                backgroundColor: AppTheme.successGreen,
+              ),
+            );
+          }
+        });
+      }
+    }
   }
 
   Future<void> _deleteMedication(Medication medication) async {
@@ -366,15 +386,23 @@ class _AddContextScreenState extends State<AddContextScreen> {
 
     if (confirm == true && mounted) {
       await _medicationRepository.deleteMedication(medication.id);
-      await _loadMedications();
 
+      // Use a post-frame callback to ensure we're not in the middle of a build
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🗑️ ${medication.displayName} supprimé'),
-            backgroundColor: AppTheme.greyMedium,
-          ),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _loadMedications();
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🗑️ ${medication.displayName} supprimé'),
+                backgroundColor: AppTheme.greyMedium,
+              ),
+            );
+          }
+        });
       }
     }
   }

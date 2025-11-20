@@ -42,7 +42,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
           icon: const Icon(Icons.menu),
           onPressed: () {},
         ),
-        title: const Text('DocteurCardio'),
+        title: const Text('DocteurCardio (Docteur)'),
         actions: [
           FutureBuilder<List<MedicalNote>>(
             future: _allNotesFuture,

@@ -467,8 +467,44 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 
   Future<void> _showChangeCardioDialog(BuildContext context) async {
-    // Get all doctors
-    final doctors = await _doctorRepository.getAllDoctors();
+    // Get all doctors from Hive
+    var doctors = await _doctorRepository.getAllDoctors();
+
+    // If no doctors in Hive, use mock data (same as registration screen)
+    if (doctors.isEmpty) {
+      doctors = [
+        Doctor(
+          id: 'doctor-mock-001',
+          firstName: 'Jean',
+          lastName: 'Kouassi',
+          email: 'kouassi@example.com',
+          phoneNumber: '+225 07 XX XX XX XX',
+          specialty: 'Cardiologue',
+          address: 'Cotonou, Bénin',
+          profileImageUrl: null,
+        ),
+        Doctor(
+          id: 'doctor-mock-002',
+          firstName: 'Amina',
+          lastName: 'Diallo',
+          email: 'diallo@example.com',
+          phoneNumber: '+225 05 XX XX XX XX',
+          specialty: 'Cardiologue',
+          address: 'Porto-Novo, Bénin',
+          profileImageUrl: null,
+        ),
+        Doctor(
+          id: 'doctor-mock-003',
+          firstName: 'Paul',
+          lastName: 'Mensah',
+          email: 'mensah@example.com',
+          phoneNumber: '+228 90 XX XX XX XX',
+          specialty: 'Cardiologue',
+          address: 'Lomé, Togo',
+          profileImageUrl: null,
+        ),
+      ];
+    }
 
     if (!mounted) return;
 
@@ -515,22 +551,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
               // Content
               Flexible(
-                child: doctors.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.error_outline, size: 48, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'Aucun cardiologue disponible',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
+                child: ListView.builder(
                         shrinkWrap: true,
                         padding: const EdgeInsets.all(16),
                         itemCount: doctors.length,
@@ -966,14 +987,13 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 
   void _processUpgrade(BuildContext context) async {
-    // Naviguer vers la page de paiement
+    // Naviguer vers la page de paiement (même page que lors de l'inscription)
     final result = await Navigator.pushNamed(
       context,
       AppRoutes.payment,
       arguments: {
-        'amount': 2000, // Différence entre PREMIUM (5000) et STANDARD (3000)
-        'description': 'Upgrade vers PREMIUM',
-        'planName': 'PREMIUM',
+        'subscription': 'premium', // Use 'premium' to match payment_screen.dart
+        'fromRegistration': false, // Indicate this is an upgrade, not registration
       },
     );
 

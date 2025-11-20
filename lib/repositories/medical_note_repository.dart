@@ -66,19 +66,39 @@ class MedicalNoteRepository {
   }
 
   /// Watch medical notes for a specific patient and get updates in real-time
-  Stream<List<MedicalNote>> watchMedicalNotesByPatient(String patientId) {
-    return _box.watch().map((_) {
+  /// This stream emits the initial data immediately, then updates on changes
+  Stream<List<MedicalNote>> watchMedicalNotesByPatient(String patientId) async* {
+    // Émettre immédiatement les données actuelles
+    try {
+      final initialNotes = _box.values
+          .where((note) => note.patientId == patientId)
+          .toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
+      yield initialNotes;
+    } catch (e) {
+      logger.e('Error getting initial medical notes: $e');
+      if (kDebugMode) {
+        print('Error getting initial medical notes: $e');
+      }
+      yield <MedicalNote>[];
+    }
+
+    // Puis écouter les changements
+    await for (final _ in _box.watch()) {
       try {
-        return _box.values.where((note) => note.patientId == patientId).toList()
-          ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
+        final notes = _box.values
+            .where((note) => note.patientId == patientId)
+            .toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+        yield notes;
       } catch (e) {
         logger.e('Error watching medical notes by patient: $e');
         if (kDebugMode) {
           print('Error watching medical notes by patient: $e');
         }
-        return <MedicalNote>[];
+        yield <MedicalNote>[];
       }
-    });
+    }
   }
 
   Future<bool> updateMedicalNote(MedicalNote medicalNote) async {

@@ -88,29 +88,75 @@ class ConversationRepository {
   }
 
   /// Stream that watches conversations for a specific doctor
-  /// Emits a new list whenever conversations are added, updated, or deleted
-  Stream<List<Conversation>> watchConversationsByDoctor(String doctorId) {
-    return _box.watch().map((_) {
-      final conversations = _box.values
+  /// Emits initial data immediately, then updates on changes
+  Stream<List<Conversation>> watchConversationsByDoctor(String doctorId) async* {
+    // Émettre immédiatement les données actuelles
+    try {
+      final initialConversations = _box.values
           .where((conv) => conv.doctorId == doctorId)
           .toList();
-      // Sort by last message time (most recent first)
-      conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-      return conversations;
-    });
+      initialConversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      yield initialConversations;
+    } catch (e) {
+      logger.e('Error getting initial conversations for doctor: $e');
+      if (kDebugMode) {
+        print('Error getting initial conversations for doctor: $e');
+      }
+      yield <Conversation>[];
+    }
+
+    // Puis écouter les changements
+    await for (final _ in _box.watch()) {
+      try {
+        final conversations = _box.values
+            .where((conv) => conv.doctorId == doctorId)
+            .toList();
+        conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+        yield conversations;
+      } catch (e) {
+        logger.e('Error watching conversations for doctor: $e');
+        if (kDebugMode) {
+          print('Error watching conversations for doctor: $e');
+        }
+        yield <Conversation>[];
+      }
+    }
   }
 
   /// Stream that watches conversations for a specific patient
-  /// Emits a new list whenever conversations are added, updated, or deleted
-  Stream<List<Conversation>> watchConversationsByPatient(String patientId) {
-    return _box.watch().map((_) {
-      final conversations = _box.values
+  /// Emits initial data immediately, then updates on changes
+  Stream<List<Conversation>> watchConversationsByPatient(String patientId) async* {
+    // Émettre immédiatement les données actuelles
+    try {
+      final initialConversations = _box.values
           .where((conv) => conv.patientId == patientId)
           .toList();
-      // Sort by last message time (most recent first)
-      conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-      return conversations;
-    });
+      initialConversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      yield initialConversations;
+    } catch (e) {
+      logger.e('Error getting initial conversations for patient: $e');
+      if (kDebugMode) {
+        print('Error getting initial conversations for patient: $e');
+      }
+      yield <Conversation>[];
+    }
+
+    // Puis écouter les changements
+    await for (final _ in _box.watch()) {
+      try {
+        final conversations = _box.values
+            .where((conv) => conv.patientId == patientId)
+            .toList();
+        conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+        yield conversations;
+      } catch (e) {
+        logger.e('Error watching conversations for patient: $e');
+        if (kDebugMode) {
+          print('Error watching conversations for patient: $e');
+        }
+        yield <Conversation>[];
+      }
+    }
   }
 
   Future<Conversation?> getConversationBetween(

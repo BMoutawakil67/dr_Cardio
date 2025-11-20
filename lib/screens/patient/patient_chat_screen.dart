@@ -52,6 +52,7 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final doctorName = args?['name'] as String? ?? 'Dr. Kouassi';
+    final measureReference = args?['measureReference'] as Map<String, dynamic>?;
 
     return Scaffold(
       appBar: AppBar(
@@ -100,6 +101,10 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
       ),
       body: Column(
         children: [
+          // Référence à la mesure si présente
+          if (measureReference != null)
+            _buildMeasureReference(measureReference),
+
           // Messages
           Expanded(
             child: ListView.builder(
@@ -158,6 +163,113 @@ class _PatientChatScreenState extends State<PatientChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMeasureReference(Map<String, dynamic> measure) {
+    final systolic = measure['systolic'] as int?;
+    final diastolic = measure['diastolic'] as int?;
+    final pulse = measure['pulse'] as int?;
+    final date = measure['date'] as String?;
+
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.monitor_heart,
+                color: AppTheme.primaryBlue,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'À propos de la mesure',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryBlue,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMeasureValue(
+                'Tension',
+                '$systolic / $diastolic',
+                'mmHg',
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+              ),
+              _buildMeasureValue(
+                'Pouls',
+                '$pulse',
+                'bpm',
+              ),
+            ],
+          ),
+          if (date != null) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                '📅 $date',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasureValue(String label, String value, String unit) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.primaryBlue,
+          ),
+        ),
+        Text(
+          unit,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+          ),
+        ),
+      ],
     );
   }
 

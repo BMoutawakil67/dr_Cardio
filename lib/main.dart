@@ -51,6 +51,8 @@ import 'package:dr_cardio/screens/common/offline_mode_screen.dart';
 
 // Écrans utilitaires
 import 'package:dr_cardio/screens/utils/placeholder_screen.dart';
+import 'package:dr_cardio/screens/common/help_support_screen.dart';
+import 'package:dr_cardio/screens/common/terms_privacy_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -215,6 +217,8 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.offlineMode: (context) => const PlaceholderScreen(
               screenName: 'Mode Hors Ligne',
             ),
+        AppRoutes.helpSupport: (context) => const HelpSupportScreen(),
+        AppRoutes.termsPrivacy: (context) => const TermsPrivacyScreen(),
       },
     );
   }

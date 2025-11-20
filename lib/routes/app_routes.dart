@@ -55,4 +55,6 @@ class AppRoutes {
   static const String qrScanner = '/qr-scanner';
   static const String alertDialog = '/alert';
   static const String offlineMode = '/offline';
+  static const String helpSupport = '/help-support';
+  static const String termsPrivacy = '/terms-privacy';
 }

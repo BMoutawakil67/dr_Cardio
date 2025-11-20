@@ -276,14 +276,14 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                             children: [
                               Expanded(
                                 child: OutlinedButton(
-                                  onPressed: () {},
+                                  onPressed: () => _showManageSubscriptionDialog(context),
                                   child: const Text('Gérer'),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () => _showUpgradeSubscriptionDialog(context),
                                   child: const Text('Améliorer'),
                                 ),
                               ),
@@ -382,7 +382,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     leading: const Icon(Icons.help_outline),
                     title: const Text('Aide & Support'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, AppRoutes.helpSupport);
+                    },
                     ),
                   ),
                   FadeInSlideUp(
@@ -391,7 +393,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       leading: const Icon(Icons.description_outlined),
                       title: const Text('CGU & Confidentialité'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.termsPrivacy);
+                      },
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -533,6 +537,306 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         ],
       ),
     );
+  }
+
+  void _showManageSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Gérer mon abonnement'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Abonnement actuel: STANDARD',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('3000 F/mois'),
+            const SizedBox(height: 16),
+            const Text(
+              'Que souhaitez-vous faire?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.pause_circle_outline, color: AppTheme.warningOrange),
+              title: const Text('Suspendre temporairement'),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _confirmSuspendSubscription(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.cancel_outlined, color: AppTheme.secondaryRed),
+              title: const Text('Résilier définitivement'),
+              onTap: () {
+                Navigator.pop(dialogContext);
+                _confirmCancelSubscription(context);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmSuspendSubscription(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.pause_circle_outline, color: AppTheme.warningOrange),
+            SizedBox(width: 12),
+            Text('Suspendre l\'abonnement'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Votre abonnement sera suspendu pendant 1 mois.'),
+            SizedBox(height: 8),
+            Text('Vous pourrez le réactiver à tout moment.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('✅ Abonnement suspendu jusqu\'au 27 Déc 2025'),
+                  backgroundColor: AppTheme.warningOrange,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.warningOrange,
+            ),
+            child: const Text('Confirmer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmCancelSubscription(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.secondaryRed),
+            SizedBox(width: 12),
+            Text('Résilier l\'abonnement'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Êtes-vous sûr de vouloir résilier votre abonnement?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Text('⚠️ Vous perdrez:'),
+            Text('• Suivi quotidien de votre tension'),
+            Text('• Communication avec votre cardiologue'),
+            Text('• Historique des mesures'),
+            Text('• Alertes automatiques'),
+            SizedBox(height: 12),
+            Text(
+              'L\'abonnement restera actif jusqu\'au 27 Nov 2025.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('❌ Abonnement résilié. Actif jusqu\'au 27 Nov 2025'),
+                  backgroundColor: AppTheme.secondaryRed,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.secondaryRed,
+            ),
+            child: const Text('Résilier'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpgradeSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.upgrade, color: AppTheme.primaryBlue),
+            SizedBox(width: 12),
+            Text('Améliorer votre abonnement'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Abonnement actuel: STANDARD',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text('3000 F/mois'),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primaryBlue.withOpacity(0.1),
+                      AppTheme.primaryBlue.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primaryBlue),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.star, color: AppTheme.primaryBlue),
+                        SizedBox(width: 8),
+                        Text(
+                          'PREMIUM',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '5000 F/mois',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Fonctionnalités supplémentaires:'),
+                    const SizedBox(height: 8),
+                    _buildFeature('✅ Consultations illimitées'),
+                    _buildFeature('✅ Priorité dans les réponses'),
+                    _buildFeature('✅ Rapports détaillés mensuels'),
+                    _buildFeature('✅ Rappels personnalisés'),
+                    _buildFeature('✅ Export des données'),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.successGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '💰 Différence: 2000 F/mois',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.successGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _processUpgrade(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+            ),
+            child: const Text('Passer à PREMIUM'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeature(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 14),
+      ),
+    );
+  }
+
+  void _processUpgrade(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      Navigator.pop(context); // Fermer le loader
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('🎉 Félicitations! Vous êtes maintenant PREMIUM'),
+          backgroundColor: AppTheme.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+
+      // Recharger l'écran pour afficher le nouveau statut
+      setState(() {});
+    });
   }
 }
 

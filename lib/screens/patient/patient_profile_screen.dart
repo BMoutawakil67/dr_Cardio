@@ -247,21 +247,21 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              color: _getSubscriptionColor(patient.subscription ?? 'free').withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              '📦 STANDARD',
+                            child: Text(
+                              _getSubscriptionLabel(patient.subscription ?? 'free'),
                               style: TextStyle(
-                                color: AppTheme.primaryBlue,
+                                color: _getSubscriptionColor(patient.subscription ?? 'free'),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            '3000 F/mois',
-                            style: TextStyle(
+                          Text(
+                            _getSubscriptionPrice(patient.subscription ?? 'free'),
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -283,7 +283,22 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () async {
+                                    final result = await Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.payment,
+                                      arguments: {
+                                        'subscription': 'premium',
+                                        'fromUpgrade': true,
+                                        'currentSubscription': patient.subscription ?? 'free',
+                                      },
+                                    );
+                                    if (result == true) {
+                                      setState(() {
+                                        _patientFuture = _patientRepository.getPatient(patient.id);
+                                      });
+                                    }
+                                  },
                                   child: const Text('Améliorer'),
                                 ),
                               ),
@@ -443,6 +458,45 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           }),
       bottomNavigationBar: const PatientBottomNav(currentIndex: 4),
     );
+  }
+
+  String _getSubscriptionLabel(String subscription) {
+    switch (subscription.toLowerCase()) {
+      case 'free':
+        return '🆓 GRATUIT';
+      case 'standard':
+        return '📦 STANDARD';
+      case 'premium':
+        return '🌟 PREMIUM';
+      default:
+        return '📦 STANDARD';
+    }
+  }
+
+  Color _getSubscriptionColor(String subscription) {
+    switch (subscription.toLowerCase()) {
+      case 'free':
+        return AppTheme.successGreen;
+      case 'standard':
+        return AppTheme.primaryBlue;
+      case 'premium':
+        return const Color(0xFFFFB020); // Gold color
+      default:
+        return AppTheme.primaryBlue;
+    }
+  }
+
+  String _getSubscriptionPrice(String subscription) {
+    switch (subscription.toLowerCase()) {
+      case 'free':
+        return '0 F/mois';
+      case 'standard':
+        return '5000 F/mois';
+      case 'premium':
+        return '10000 F/mois';
+      default:
+        return '5000 F/mois';
+    }
   }
 
   Future<void> _showChangeCardioDialog(BuildContext context) async {

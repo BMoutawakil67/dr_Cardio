@@ -357,8 +357,8 @@ class _RecordPressureManualScreenState
         ),
       );
 
-      // Return to previous screen
-      Navigator.pop(context);
+      // Return to previous screen with success indicator
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 

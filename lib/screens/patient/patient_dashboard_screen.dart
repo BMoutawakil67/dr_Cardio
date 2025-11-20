@@ -151,6 +151,14 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                   child: FutureBuilder<List<MedicalNote>>(
                   future: _medicalNotesFuture,
                   builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Text(
+                        'Chargement...',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                      );
+                    }
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                       final lastNote = snapshot.data!.first;
                       final formattedDate = DateFormat('dd/MM/yyyy, HH:mm')
@@ -205,9 +213,12 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                         child: _QuickActionCard(
                         icon: Icons.camera_alt_outlined,
                         label: 'Photo\nTension',
-                        onTap: () {
-                          Navigator.pushNamed(
+                        onTap: () async {
+                          final result = await Navigator.pushNamed(
                               context, AppRoutes.recordPressurePhoto);
+                          if (result == true) {
+                            _refreshData();
+                          }
                         },
                       ),
                     ),
@@ -216,9 +227,12 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                       child: _QuickActionCard(
                         icon: Icons.edit_outlined,
                         label: 'Manuel\nSaisie',
-                        onTap: () {
-                          Navigator.pushNamed(
+                        onTap: () async {
+                          final result = await Navigator.pushNamed(
                               context, AppRoutes.recordPressureManual);
+                          if (result == true) {
+                            _refreshData();
+                          }
                         },
                       ),
                     ),

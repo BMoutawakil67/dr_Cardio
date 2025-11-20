@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/repositories/patient_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -16,7 +18,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   int _amount = 3000;
   String _selectedSubscription = 'standard';
 
-  // Contrôleurs pour Mobile Money
+  // Contrôleurs pour Mobile Money et Carte
   final _phoneController = TextEditingController();
   final _cardNumberController = TextEditingController();
   final _cardExpiryController = TextEditingController();
@@ -32,6 +34,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   bool _fromRegistration = false;
+  bool _fromUpgrade = false;
+  String _currentSubscription = 'free';
 
   @override
   void didChangeDependencies() {
@@ -41,6 +45,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (arguments != null) {
       _selectedSubscription = arguments['subscription'] ?? 'standard';
       _fromRegistration = arguments['fromRegistration'] ?? false;
+      _fromUpgrade = arguments['fromUpgrade'] ?? false;
+      _currentSubscription = arguments['currentSubscription'] ?? 'free';
 
       if (_selectedSubscription == 'standard') {
         _amount = 5000;
@@ -48,6 +54,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       } else if (_selectedSubscription == 'premium') {
         _amount = 10000;
         _selectedPlan = 'PREMIUM';
+      }
+
+      // Calculate upgrade difference
+      if (_fromUpgrade) {
+        final currentAmount = _currentSubscription == 'free' ? 0 : (_currentSubscription == 'standard' ? 5000 : 10000);
+        _amount = _amount - currentAmount;
       }
     }
   }
@@ -100,10 +112,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
 
     // Simuler le traitement du paiement
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () async {
       if (!mounted) return;
 
       Navigator.pop(context); // Fermer le dialog de traitement
+
+      // Mettre à jour l'abonnement du patient
+      if (_fromRegistration || _fromUpgrade) {
+        final patientId = AuthService().currentUserId;
+        if (patientId != null) {
+          final patientRepository = PatientRepository();
+          final patient = await patientRepository.getPatient(patientId);
+          if (patient != null) {
+            final updatedPatient = patient.copyWith(subscription: _selectedSubscription);
+            await patientRepository.updatePatient(updatedPatient);
+          }
+        }
+      }
 
       // Afficher le dialog de succès
       _showSuccessDialog();
@@ -144,7 +169,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Text(
               _fromRegistration
                   ? 'Votre abonnement $_selectedPlan a été activé.\nVous pouvez maintenant choisir votre cardiologue.'
-                  : 'Votre abonnement $_selectedPlan a été activé avec succès',
+                  : _fromUpgrade
+                      ? 'Votre abonnement a été mis à niveau vers $_selectedPlan avec succès!'
+                      : 'Votre abonnement $_selectedPlan a été activé avec succès',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -154,6 +181,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 Navigator.pop(context); // Fermer le dialog
                 if (_fromRegistration) {
                   // Si depuis l'inscription, retourner true pour continuer le flux
+                  Navigator.pop(context, true);
+                } else if (_fromUpgrade) {
+                  // Si depuis upgrade, retourner true pour refresh le profil
                   Navigator.pop(context, true);
                 } else {
                   // Sinon, rediriger vers le dashboard patient
@@ -167,7 +197,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.successGreen,
               ),
-              child: Text(_fromRegistration ? 'CONTINUER' : 'ACCÉDER À MON COMPTE'),
+              child: Text(_fromRegistration ? 'CONTINUER' : _fromUpgrade ? 'RETOUR AU PROFIL' : 'ACCÉDER À MON COMPTE'),
             ),
           ],
         ),
@@ -221,8 +251,148 @@ class _PaymentScreenState extends State<PaymentScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            // ... rest of the payment UI
+
+            // Mobile Money Options
+            _buildPaymentMethodCard(
+              'mtn',
+              'MTN Money',
+              Icons.phone_android,
+              AppTheme.warningOrange,
+            ),
+            const SizedBox(height: 12),
+            _buildPaymentMethodCard(
+              'moov',
+              'Moov Money',
+              Icons.phone_android,
+              Colors.blue,
+            ),
+            const SizedBox(height: 12),
+            _buildPaymentMethodCard(
+              'card',
+              'Carte bancaire',
+              Icons.credit_card,
+              AppTheme.greyDark,
+            ),
+            const SizedBox(height: 24),
+
+            // Payment form based on selected method
+            if (_selectedPaymentMethod == 'mtn' || _selectedPaymentMethod == 'moov')
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.phone),
+                  labelText: 'Numéro de téléphone',
+                  hintText: _selectedPaymentMethod == 'mtn' ? 'Ex: 96 XX XX XX' : 'Ex: 97 XX XX XX',
+                ),
+              ),
+
+            if (_selectedPaymentMethod == 'card') ...[
+              TextFormField(
+                controller: _cardNumberController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.credit_card),
+                  labelText: 'Numéro de carte',
+                  hintText: '1234 5678 9012 3456',
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _cardExpiryController,
+                      keyboardType: TextInputType.datetime,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.calendar_today),
+                        labelText: 'Expiration',
+                        hintText: 'MM/AA',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _cardCvvController,
+                      keyboardType: TextInputType.number,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.lock),
+                        labelText: 'CVV',
+                        hintText: '123',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 32),
+
+            // Bouton Payer
+            ElevatedButton(
+              onPressed: _processPayment,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text('PAYER $_amount FCFA'),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodCard(
+    String methodId,
+    String title,
+    IconData icon,
+    Color color,
+  ) {
+    final isSelected = _selectedPaymentMethod == methodId;
+
+    return Card(
+      elevation: isSelected ? 4 : 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedPaymentMethod = methodId;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_circle,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            ],
+          ),
         ),
       ),
     );

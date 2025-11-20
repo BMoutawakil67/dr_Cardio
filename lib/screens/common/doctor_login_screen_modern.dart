@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 
 class DoctorLoginScreenModern extends StatefulWidget {
   const DoctorLoginScreenModern({super.key});
@@ -55,6 +57,60 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('❌ Erreur: $e'),
+          backgroundColor: AppTheme.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final doctorRepository = DoctorRepository();
+      final doctors = await doctorRepository.getAllDoctors();
+
+      if (doctors.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('❌ Aucun cardiologue disponible'),
+            backgroundColor: AppTheme.errorRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        return;
+      }
+
+      // Connecter avec le premier cardiologue
+      final firstDoctor = doctors.first;
+      AuthService().currentUserId = firstDoctor.id;
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Connexion biométrique réussie - Dr. ${firstDoctor.firstName} ${firstDoctor.lastName}'),
+          backgroundColor: AppTheme.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+
+      Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur biométrique: $e'),
           backgroundColor: AppTheme.errorRed,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -339,6 +395,50 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
                                       ),
                                 ),
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bouton biométrie
+                  FadeInSlideUp(
+                    delay: 1700,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Divider(color: Colors.white.withOpacity(0.3)),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'OU',
+                            style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(color: Colors.white.withOpacity(0.3)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  FadeInSlideUp(
+                    delay: 1750,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _handleBiometricLogin,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(color: Colors.white.withOpacity(0.5), width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      icon: const Icon(Icons.fingerprint, size: 28),
+                      label: const Text(
+                        'CONNEXION BIOMÉTRIQUE',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

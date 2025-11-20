@@ -236,7 +236,7 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                       minScale: 0.98,
                       maxScale: 1.02,
                       child: Image.asset(
-                        'assets/images/logoBase.png',
+                        'assets/images/logoBaseWhite.png',
                         width: 120,
                         height: 120,
                       ),

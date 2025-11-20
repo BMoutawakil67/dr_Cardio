@@ -457,6 +457,36 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
               ),
             ),
 
+            // Aide et Support
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.help_outline, color: AppTheme.primaryBlue),
+                      title: const Text('Aide & Support'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.helpSupport);
+                      },
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.description_outlined, color: AppTheme.primaryBlue),
+                      title: const Text('CGU & Confidentialité'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.termsPrivacy);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Déconnexion
             Padding(
               padding: const EdgeInsets.all(16),

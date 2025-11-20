@@ -36,6 +36,8 @@ import 'package:dr_cardio/screens/doctor/doctor_messages_screen.dart';
 import 'package:dr_cardio/screens/doctor/doctor_chat_screen.dart';
 import 'package:dr_cardio/screens/doctor/doctor_patient_history_screen.dart';
 import 'package:dr_cardio/screens/doctor/doctor_revenue_screen.dart';
+import 'package:dr_cardio/screens/doctor/doctor_notifications_settings_screen.dart';
+import 'package:dr_cardio/screens/doctor/consultation_hours_edit_screen.dart';
 import 'package:dr_cardio/screens/common/teleconsultation_screen.dart';
 import 'package:dr_cardio/screens/admin/admin_dashboard_screen.dart';
 import 'package:dr_cardio/screens/patient/patient_edit_profile_screen.dart';
@@ -51,6 +53,8 @@ import 'package:dr_cardio/screens/common/offline_mode_screen.dart';
 
 // Écrans utilitaires
 import 'package:dr_cardio/screens/utils/placeholder_screen.dart';
+import 'package:dr_cardio/screens/common/help_support_screen.dart';
+import 'package:dr_cardio/screens/common/terms_privacy_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -201,6 +205,10 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.doctorMessages: (context) => const DoctorMessagesScreen(),
         AppRoutes.doctorChat: (context) => const DoctorChatScreen(),
         AppRoutes.doctorRevenue: (context) => const DoctorRevenueScreen(),
+        AppRoutes.doctorNotificationsSettings: (context) =>
+            const DoctorNotificationsSettingsScreen(),
+        AppRoutes.doctorConsultationHours: (context) =>
+            const ConsultationHoursEditScreen(),
 
         // Routes Administrateur
         AppRoutes.adminDashboard: (context) => const AdminDashboardScreen(),
@@ -215,6 +223,8 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.offlineMode: (context) => const PlaceholderScreen(
               screenName: 'Mode Hors Ligne',
             ),
+        AppRoutes.helpSupport: (context) => const HelpSupportScreen(),
+        AppRoutes.termsPrivacy: (context) => const TermsPrivacyScreen(),
       },
     );
   }

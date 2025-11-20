@@ -340,16 +340,322 @@ class _DoctorPatientFileScreenState extends State<DoctorPatientFileScreen> {
     Navigator.pushNamed(context, AppRoutes.doctorChat);
   }
 
-  void _makeCall(BuildContext context) {
-    // TODO: Implement
+  void _makeCall(BuildContext context) async {
+    final patient = await _patientFuture;
+    if (patient == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _CallDialog(
+        patientName: '${patient.firstName} ${patient.lastName}',
+        isVideo: false,
+      ),
+    );
   }
 
-  void _startVideoCall(BuildContext context) {
-    // TODO: Implement
+  void _startVideoCall(BuildContext context) async {
+    final patient = await _patientFuture;
+    if (patient == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _CallDialog(
+        patientName: '${patient.firstName} ${patient.lastName}',
+        isVideo: true,
+      ),
+    );
   }
 
   void _showMoreOptions(BuildContext context) {
-    // TODO: Implement
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.download, color: AppTheme.primaryBlue),
+              title: const Text('Télécharger le dossier'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('📥 Téléchargement du dossier en cours...'),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.print, color: AppTheme.primaryBlue),
+              title: const Text('Imprimer le dossier'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('🖨️ Impression en cours...'),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share, color: AppTheme.primaryBlue),
+              title: const Text('Partager'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('📤 Partage en cours...'),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.archive, color: AppTheme.warningOrange),
+              title: const Text('Archiver le patient'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('📦 Patient archivé'),
+                    backgroundColor: AppTheme.warningOrange,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Call Dialog Widget
+class _CallDialog extends StatefulWidget {
+  final String patientName;
+  final bool isVideo;
+
+  const _CallDialog({
+    required this.patientName,
+    required this.isVideo,
+  });
+
+  @override
+  State<_CallDialog> createState() => _CallDialogState();
+}
+
+class _CallDialogState extends State<_CallDialog> {
+  String _callStatus = 'connecting';
+  bool _isMuted = false;
+  bool _isSpeakerOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _simulateCall();
+  }
+
+  Future<void> _simulateCall() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      setState(() {
+        _callStatus = 'connected';
+      });
+    }
+  }
+
+  void _endCall() {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(widget.isVideo
+            ? '📹 Appel vidéo terminé'
+            : '📞 Appel audio terminé'),
+        backgroundColor: AppTheme.successGreen,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.isVideo ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.isVideo) ...[
+              // Simulated video call interface
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade800,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.videocam,
+                            size: 80,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _callStatus == 'connecting'
+                                ? 'Connexion...'
+                                : 'Appel vidéo actif',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Small self-view in corner
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        width: 80,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade700,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white70,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Audio call interface
+              const CircleAvatar(
+                radius: 50,
+                backgroundColor: AppTheme.primaryBlue,
+                child: Icon(
+                  Icons.person,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Text(
+              widget.patientName,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: widget.isVideo ? Colors.white : AppTheme.textColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _callStatus == 'connecting'
+                  ? 'Connexion en cours...'
+                  : 'En cours...',
+              style: TextStyle(
+                fontSize: 16,
+                color: widget.isVideo
+                    ? Colors.white70
+                    : AppTheme.greyMedium,
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Call controls
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildCallButton(
+                  icon: _isMuted ? Icons.mic_off : Icons.mic,
+                  label: 'Muet',
+                  onPressed: () {
+                    setState(() {
+                      _isMuted = !_isMuted;
+                    });
+                  },
+                  backgroundColor: _isMuted ? AppTheme.errorRed : null,
+                ),
+                _buildCallButton(
+                  icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_down,
+                  label: 'Haut-parleur',
+                  onPressed: () {
+                    setState(() {
+                      _isSpeakerOn = !_isSpeakerOn;
+                    });
+                  },
+                  backgroundColor: _isSpeakerOn ? AppTheme.primaryBlue : null,
+                ),
+                _buildCallButton(
+                  icon: Icons.call_end,
+                  label: 'Raccrocher',
+                  onPressed: _endCall,
+                  backgroundColor: AppTheme.errorRed,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCallButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    Color? backgroundColor,
+  }) {
+    final buttonColor = backgroundColor ??
+        (widget.isVideo ? Colors.grey.shade700 : Colors.grey.shade200);
+    final iconColor = widget.isVideo ? Colors.white : AppTheme.textColor;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: buttonColor,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: const CircleBorder(),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: widget.isVideo ? Colors.white70 : AppTheme.greyMedium,
+          ),
+        ),
+      ],
+    );
   }
 }
 

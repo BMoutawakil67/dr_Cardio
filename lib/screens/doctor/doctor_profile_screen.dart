@@ -3,7 +3,9 @@ import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dr_cardio/models/doctor_model.dart';
+import 'package:dr_cardio/models/consultation_hours_model.dart';
 import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/repositories/consultation_hours_repository.dart';
 import 'package:dr_cardio/services/auth_service.dart';
 import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 
@@ -16,7 +18,10 @@ class DoctorProfileScreen extends StatefulWidget {
 
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   final DoctorRepository _doctorRepository = DoctorRepository();
+  final ConsultationHoursRepository _hoursRepository =
+      ConsultationHoursRepository();
   Doctor? _doctor;
+  ConsultationHours? _consultationHours;
   bool _isLoading = true;
 
   @override
@@ -28,10 +33,12 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   Future<void> _loadDoctor() async {
     final doctorId = AuthService().currentUserId ?? 'doctor-001';
     final doctor = await _doctorRepository.getDoctor(doctorId);
+    final hours = await _hoursRepository.getConsultationHours(doctorId);
 
     if (mounted) {
       setState(() {
         _doctor = doctor;
+        _consultationHours = hours;
         _isLoading = false;
       });
     }
@@ -278,31 +285,21 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit, size: 20),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Modifier les horaires'),
-                                  content: const Text(
-                                      'Cette fonctionnalité vous permettra de modifier vos horaires de consultation.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ),
+                            onPressed: () async {
+                              final result = await Navigator.pushNamed(
+                                context,
+                                AppRoutes.doctorConsultationHours,
                               );
+                              if (result == true) {
+                                // Reload hours after editing
+                                _loadDoctor();
+                              }
                             },
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      _buildScheduleRow('Lundi - Vendredi', '08:00 - 17:00'),
-                      const SizedBox(height: 8),
-                      _buildScheduleRow('Samedi', '08:00 - 12:00'),
-                      const SizedBox(height: 8),
-                      _buildScheduleRow('Dimanche', 'Fermé'),
+                      _buildScheduleFromHive(),
                     ],
                   ),
                 ),
@@ -339,7 +336,10 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                       leading: const Icon(Icons.notifications_outlined),
                       title: const Text('Notifications'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(
+                            context, AppRoutes.doctorNotificationsSettings);
+                      },
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -456,6 +456,36 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 ),
               ),
             ),
+
+            // Aide et Support
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.help_outline, color: AppTheme.primaryBlue),
+                      title: const Text('Aide & Support'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.helpSupport);
+                      },
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.description_outlined, color: AppTheme.primaryBlue),
+                      title: const Text('CGU & Confidentialité'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.termsPrivacy);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             // Déconnexion
             Padding(
@@ -586,6 +616,74 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildScheduleFromHive() {
+    if (_consultationHours == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final schedule = _consultationHours!.schedule;
+
+    // Group weekdays
+    final weekdaysEnabled = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+        .every((day) => schedule[day]?.enabled == true);
+    final weekdaysStart = schedule['monday']?.start ?? '08:00';
+    final weekdaysEnd = schedule['monday']?.end ?? '17:00';
+    final allWeekdaysSame = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+        .every((day) =>
+          schedule[day]?.start == weekdaysStart &&
+          schedule[day]?.end == weekdaysEnd);
+
+    return Column(
+      children: [
+        if (weekdaysEnabled && allWeekdaysSame) ...[
+          _buildScheduleRow(
+            'Lundi - Vendredi',
+            '$weekdaysStart - $weekdaysEnd',
+          ),
+          const SizedBox(height: 8),
+        ] else ...[
+          if (schedule['monday']?.enabled == true)
+            ...[_buildScheduleRow(
+              'Lundi',
+              '${schedule['monday']!.start} - ${schedule['monday']!.end}',
+            ), const SizedBox(height: 8)],
+          if (schedule['tuesday']?.enabled == true)
+            ...[_buildScheduleRow(
+              'Mardi',
+              '${schedule['tuesday']!.start} - ${schedule['tuesday']!.end}',
+            ), const SizedBox(height: 8)],
+          if (schedule['wednesday']?.enabled == true)
+            ...[_buildScheduleRow(
+              'Mercredi',
+              '${schedule['wednesday']!.start} - ${schedule['wednesday']!.end}',
+            ), const SizedBox(height: 8)],
+          if (schedule['thursday']?.enabled == true)
+            ...[_buildScheduleRow(
+              'Jeudi',
+              '${schedule['thursday']!.start} - ${schedule['thursday']!.end}',
+            ), const SizedBox(height: 8)],
+          if (schedule['friday']?.enabled == true)
+            ...[_buildScheduleRow(
+              'Vendredi',
+              '${schedule['friday']!.start} - ${schedule['friday']!.end}',
+            ), const SizedBox(height: 8)],
+        ],
+        if (schedule['saturday']?.enabled == true)
+          ...[_buildScheduleRow(
+            'Samedi',
+            '${schedule['saturday']!.start} - ${schedule['saturday']!.end}',
+          ), const SizedBox(height: 8)],
+        if (schedule['sunday']?.enabled == true)
+          _buildScheduleRow(
+            'Dimanche',
+            '${schedule['sunday']!.start} - ${schedule['sunday']!.end}',
+          )
+        else
+          _buildScheduleRow('Dimanche', 'Fermé'),
+      ],
     );
   }
 }

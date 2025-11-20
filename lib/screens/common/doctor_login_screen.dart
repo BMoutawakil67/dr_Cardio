@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
+import 'package:dr_cardio/repositories/doctor_repository.dart';
+import 'package:dr_cardio/services/auth_service.dart';
 
 class DoctorLoginScreen extends StatefulWidget {
   const DoctorLoginScreen({super.key});
@@ -42,27 +44,10 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
               children: [
                 // Logo
                 Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/logoBase.png',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  child: Image.asset(
+                    'assets/images/logoBase.png',
+                    width: 100,
+                    height: 100,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -299,7 +284,7 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
     );
   }
 
-  void _performLogin() {
+  Future<void> _performLogin() async {
     // Afficher un loader
     showDialog(
       context: context,
@@ -309,34 +294,47 @@ class _DoctorLoginScreenState extends State<DoctorLoginScreen> {
       ),
     );
 
-    // Simuler une connexion (2 secondes)
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      final repository = DoctorRepository();
+      final doctors = await repository.getAllDoctors();
+
+      final email = _emailController.text.trim();
+      final doctor = doctors.firstWhere(
+        (d) => d.email.toLowerCase() == email.toLowerCase(),
+        orElse: () => throw Exception('Aucun compte trouvé avec cet email'),
+      );
+
       if (!mounted) return;
 
       Navigator.pop(context); // Fermer le loader
 
-      // Vérifier les credentials (à remplacer par vraie API)
-      if (_emailController.text.isNotEmpty) {
-        // Succès
-        Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
+      // Enregistrer la connexion
+      AuthService().login(doctor.id, 'doctor');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Connexion réussie'),
-            backgroundColor: AppTheme.successGreen,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        // Erreur
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Email ou mot de passe incorrect'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Bienvenue Dr. ${doctor.firstName} ${doctor.lastName}!'),
+          backgroundColor: AppTheme.successGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, AppRoutes.doctorDashboard);
+    } catch (e) {
+      if (!mounted) return;
+
+      Navigator.pop(context); // Fermer le loader
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
   }
 
   void _showForgotPasswordDialog() {

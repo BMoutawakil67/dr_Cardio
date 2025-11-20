@@ -41,6 +41,9 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
         _isBiometricAvailable = isAvailable && biometrics.isNotEmpty;
         _availableBiometrics = biometrics;
       });
+
+      // Note: On ne lance plus automatiquement l'authentification biométrique
+      // L'utilisateur doit cliquer sur le bouton pour l'activer
     }
   }
 
@@ -230,27 +233,10 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
                       duration: const Duration(seconds: 3),
                       minScale: 0.98,
                       maxScale: 1.02,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/logoBase.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                      child: Image.asset(
+                        'assets/images/logoBase.png',
+                        width: 120,
+                        height: 120,
                       ),
                     ),
                   ),

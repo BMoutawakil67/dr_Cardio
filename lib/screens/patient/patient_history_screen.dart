@@ -270,6 +270,8 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                   itemBuilder: (context, index) {
                     final note = notes[index];
                     return _MeasureCard(
+                      noteId: note.id,
+                      doctorId: note.doctorId,
                       date: '${note.date.day}/${note.date.month}/${note.date.year}',
                       systolic: note.systolic,
                       diastolic: note.diastolic,
@@ -345,6 +347,8 @@ class _StatRow extends StatelessWidget {
 }
 
 class _MeasureCard extends StatelessWidget {
+  final String noteId;
+  final String doctorId;
   final String date;
   final int systolic;
   final int diastolic;
@@ -355,6 +359,8 @@ class _MeasureCard extends StatelessWidget {
   final String? warning;
 
   const _MeasureCard({
+    required this.noteId,
+    required this.doctorId,
     required this.date,
     required this.systolic,
     required this.diastolic,
@@ -422,25 +428,47 @@ class _MeasureCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.measureDetail,
-                    arguments: {
-                      'date': date,
-                      'systolic': systolic,
-                      'diastolic': diastolic,
-                      'pulse': pulse,
-                      'status': status,
-                      'context': this.context,
-                    },
-                  );
-                },
-                child: const Text('Détails >'),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.patientMessages,
+                      arguments: {
+                        'doctorId': doctorId,
+                        'measureReference': {
+                          'noteId': noteId,
+                          'date': date,
+                          'systolic': systolic,
+                          'diastolic': diastolic,
+                          'pulse': pulse,
+                        },
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('Discuter'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.measureDetail,
+                      arguments: {
+                        'date': date,
+                        'systolic': systolic,
+                        'diastolic': diastolic,
+                        'pulse': pulse,
+                        'status': status,
+                        'context': this.context,
+                      },
+                    );
+                  },
+                  child: const Text('Détails >'),
+                ),
+              ],
             ),
           ],
         ),

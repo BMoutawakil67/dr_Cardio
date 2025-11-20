@@ -23,6 +23,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   late Future<Patient?> _patientFuture;
   late Future<Doctor?> _doctorFuture;
 
+  // Subscription state
+  String _subscriptionPlan = 'STANDARD';
+  int _subscriptionPrice = 3000;
+
   @override
   void initState() {
     super.initState();
@@ -247,21 +251,34 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              color: _subscriptionPlan == 'PREMIUM'
+                                  ? Colors.amber.withValues(alpha: 0.2)
+                                  : AppTheme.primaryBlue.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              '📦 STANDARD',
-                              style: TextStyle(
-                                color: AppTheme.primaryBlue,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_subscriptionPlan == 'PREMIUM')
+                                  const Icon(Icons.star, size: 16, color: Colors.amber),
+                                if (_subscriptionPlan == 'PREMIUM')
+                                  const SizedBox(width: 4),
+                                Text(
+                                  _subscriptionPlan == 'PREMIUM' ? '⭐ PREMIUM' : '📦 STANDARD',
+                                  style: TextStyle(
+                                    color: _subscriptionPlan == 'PREMIUM'
+                                        ? Colors.amber[700]
+                                        : AppTheme.primaryBlue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            '3000 F/mois',
-                            style: TextStyle(
+                          Text(
+                            '$_subscriptionPrice F/mois',
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -457,84 +474,219 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Changer de cardiologue'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: doctors.isEmpty
-              ? const Text('Aucun cardiologue disponible')
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: doctors.length,
-                  itemBuilder: (context, index) {
-                    final doctor = doctors[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: doctor.profileImageUrl != null
-                            ? NetworkImage(doctor.profileImageUrl!)
-                            : null,
-                        child: doctor.profileImageUrl == null
-                            ? const Icon(Icons.person)
-                            : null,
-                      ),
-                      title: Text('Dr. ${doctor.firstName} ${doctor.lastName}'),
-                      subtitle: Text(doctor.specialty),
-                      onTap: () async {
-                        Navigator.pop(dialogContext);
-
-                        // Get current patient
-                        final patientId = AuthService().currentUserId ?? 'patient-001';
-                        final currentPatient = await _patientRepository.getPatient(patientId);
-
-                        if (currentPatient != null) {
-                          // Update patient's assigned doctor
-                          final updatedPatient = currentPatient.copyWith(
-                            assignedDoctorId: doctor.id,
-                          );
-
-                          // Save to database
-                          final success = await _patientRepository.updatePatient(updatedPatient);
-
-                          if (success) {
-                            // Reload the doctor future
-                            setState(() {
-                              _doctorFuture = _doctorRepository.getDoctor(doctor.id);
-                            });
-
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('✅ Cardiologue changé pour Dr. ${doctor.firstName} ${doctor.lastName}'),
-                                  backgroundColor: AppTheme.successGreen,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              );
-                            }
-                          } else {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('❌ Erreur lors du changement de cardiologue'),
-                                  backgroundColor: AppTheme.errorRed,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              );
-                            }
-                          }
-                        }
-                      },
-                    );
-                  },
+      builder: (BuildContext dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 600, maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
                 ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.medical_services, color: Colors.white),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Changer de cardiologue',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(dialogContext),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Flexible(
+                child: doctors.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline, size: 48, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'Aucun cardiologue disponible',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: doctors.length,
+                        itemBuilder: (context, index) {
+                          final doctor = doctors[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () async {
+                                Navigator.pop(dialogContext);
+
+                                // Afficher loader
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+
+                                // Get current patient
+                                final patientId = AuthService().currentUserId ?? 'patient-001';
+                                final currentPatient = await _patientRepository.getPatient(patientId);
+
+                                if (currentPatient != null) {
+                                  // Update patient's assigned doctor
+                                  final updatedPatient = currentPatient.copyWith(
+                                    assignedDoctorId: doctor.id,
+                                  );
+
+                                  // Save to database
+                                  final success = await _patientRepository.updatePatient(updatedPatient);
+
+                                  if (mounted) {
+                                    Navigator.pop(context); // Fermer loader
+
+                                    if (success) {
+                                      // Reload the doctor future
+                                      setState(() {
+                                        _doctorFuture = _doctorRepository.getDoctor(doctor.id);
+                                      });
+
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('✅ Cardiologue changé pour Dr. ${doctor.firstName} ${doctor.lastName}'),
+                                          backgroundColor: AppTheme.successGreen,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Text('❌ Erreur lors du changement de cardiologue'),
+                                          backgroundColor: AppTheme.errorRed,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    // Avatar
+                                    CircleAvatar(
+                                      radius: 30,
+                                      backgroundColor: AppTheme.primaryBlue.withOpacity(0.1),
+                                      backgroundImage: doctor.profileImageUrl != null
+                                          ? NetworkImage(doctor.profileImageUrl!)
+                                          : null,
+                                      child: doctor.profileImageUrl == null
+                                          ? const Icon(Icons.person, size: 30, color: AppTheme.primaryBlue)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Dr. ${doctor.firstName} ${doctor.lastName}',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.medical_services,
+                                                size: 14,
+                                                color: AppTheme.primaryBlue,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                doctor.specialty,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          if (doctor.address.isNotEmpty)
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.location_on_outlined,
+                                                  size: 14,
+                                                  color: Colors.grey,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    doctor.address,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Arrow
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: AppTheme.primaryBlue,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -711,11 +863,11 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Abonnement actuel: STANDARD',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                'Abonnement actuel: $_subscriptionPlan',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              const Text('3000 F/mois'),
+              Text('$_subscriptionPrice F/mois'),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -813,16 +965,24 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     );
   }
 
-  void _processUpgrade(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+  void _processUpgrade(BuildContext context) async {
+    // Naviguer vers la page de paiement
+    final result = await Navigator.pushNamed(
+      context,
+      AppRoutes.payment,
+      arguments: {
+        'amount': 2000, // Différence entre PREMIUM (5000) et STANDARD (3000)
+        'description': 'Upgrade vers PREMIUM',
+        'planName': 'PREMIUM',
+      },
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      Navigator.pop(context); // Fermer le loader
+    // Si le paiement est réussi
+    if (result == true && mounted) {
+      setState(() {
+        _subscriptionPlan = 'PREMIUM';
+        _subscriptionPrice = 5000;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -833,10 +993,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           duration: const Duration(seconds: 4),
         ),
       );
-
-      // Recharger l'écran pour afficher le nouveau statut
-      setState(() {});
-    });
+    }
   }
 }
 

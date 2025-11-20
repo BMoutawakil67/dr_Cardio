@@ -131,7 +131,7 @@ class _PatientLoginScreenModernState extends State<PatientLoginScreenModern> {
 
     try {
       // Authentifier avec biométrie
-      final authenticated = await _biometricAuthService.authenticate(
+      final authenticated = await _biometricAuthService.authenticateWithBiometrics(
         reason: 'Authentifiez-vous pour accéder à votre compte patient',
       );
 

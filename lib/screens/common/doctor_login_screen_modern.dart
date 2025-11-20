@@ -110,7 +110,7 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
 
     try {
       // Authentifier avec biométrie
-      final authenticated = await _biometricAuthService.authenticate(
+      final authenticated = await _biometricAuthService.authenticateWithBiometrics(
         reason: 'Authentifiez-vous pour accéder à votre compte cardiologue',
       );
 

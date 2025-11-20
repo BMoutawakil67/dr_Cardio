@@ -339,7 +339,10 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                       leading: const Icon(Icons.notifications_outlined),
                       title: const Text('Notifications'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(
+                            context, AppRoutes.doctorNotificationsSettings);
+                      },
                     ),
                     const Divider(height: 1),
                     ListTile(

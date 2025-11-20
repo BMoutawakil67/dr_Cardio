@@ -36,6 +36,7 @@ import 'package:dr_cardio/screens/doctor/doctor_messages_screen.dart';
 import 'package:dr_cardio/screens/doctor/doctor_chat_screen.dart';
 import 'package:dr_cardio/screens/doctor/doctor_patient_history_screen.dart';
 import 'package:dr_cardio/screens/doctor/doctor_revenue_screen.dart';
+import 'package:dr_cardio/screens/doctor/doctor_notifications_settings_screen.dart';
 import 'package:dr_cardio/screens/common/teleconsultation_screen.dart';
 import 'package:dr_cardio/screens/admin/admin_dashboard_screen.dart';
 import 'package:dr_cardio/screens/patient/patient_edit_profile_screen.dart';
@@ -203,6 +204,8 @@ class _MyAppState extends State<MyApp> {
         AppRoutes.doctorMessages: (context) => const DoctorMessagesScreen(),
         AppRoutes.doctorChat: (context) => const DoctorChatScreen(),
         AppRoutes.doctorRevenue: (context) => const DoctorRevenueScreen(),
+        AppRoutes.doctorNotificationsSettings: (context) =>
+            const DoctorNotificationsSettingsScreen(),
 
         // Routes Administrateur
         AppRoutes.adminDashboard: (context) => const AdminDashboardScreen(),

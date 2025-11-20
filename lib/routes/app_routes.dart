@@ -47,6 +47,7 @@ class AppRoutes {
   static const String doctorChat = '/doctor/chat';
   static const String doctorRevenue = '/doctor/revenue';
   static const String doctorNotificationsSettings = '/doctor/notifications-settings';
+  static const String doctorConsultationHours = '/doctor/consultation-hours';
 
   // Routes Administrateur
   static const String adminLogin = '/admin/login';

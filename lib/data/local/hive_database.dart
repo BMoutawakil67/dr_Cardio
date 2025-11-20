@@ -6,6 +6,7 @@ import '../../models/medical_note_model.dart';
 import '../../models/message_model.dart';
 import '../../models/conversation_model.dart';
 import '../../models/medication_model.dart';
+import '../../models/consultation_hours_model.dart';
 
 class HiveDatabase {
   static const String patientBox = 'patient';
@@ -14,6 +15,7 @@ class HiveDatabase {
   static const String messageBox = 'message';
   static const String conversationBox = 'conversation';
   static const String medicationBox = 'medication';
+  static const String consultationHoursBox = 'consultation_hours';
 
   static Future<void> init() async {
     // Initialiser Hive
@@ -26,6 +28,8 @@ class HiveDatabase {
     Hive.registerAdapter(MessageAdapter());
     Hive.registerAdapter(ConversationAdapter());
     Hive.registerAdapter(MedicationAdapter());
+    Hive.registerAdapter(ConsultationHoursAdapter());
+    Hive.registerAdapter(DayScheduleAdapter());
 
     // Ouvrir les boxes
     await Hive.openBox<Patient>(patientBox);
@@ -34,6 +38,7 @@ class HiveDatabase {
     await Hive.openBox<Message>(messageBox);
     await Hive.openBox<Conversation>(conversationBox);
     await Hive.openBox<Medication>(medicationBox);
+    await Hive.openBox<ConsultationHours>(consultationHoursBox);
 
     logger.i('Hive initialized successfully');
   }
@@ -49,5 +54,6 @@ class HiveDatabase {
     await Hive.box<Message>(messageBox).clear();
     await Hive.box<Conversation>(conversationBox).clear();
     await Hive.box<Medication>(medicationBox).clear();
+    await Hive.box<ConsultationHours>(consultationHoursBox).clear();
   }
 }

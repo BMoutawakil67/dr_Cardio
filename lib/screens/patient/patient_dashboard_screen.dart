@@ -23,11 +23,13 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
 
   late Future<Patient?> _patientFuture;
   late Future<List<MedicalNote>> _medicalNotesFuture;
+  late Stream<List<MedicalNote>> _medicalNotesStream;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _setupMedicalNotesStream();
   }
 
   void _loadData() {
@@ -35,6 +37,11 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
     _patientFuture = _patientRepository.getPatient(patientId);
     _medicalNotesFuture =
         _medicalNoteRepository.getMedicalNotesByPatient(patientId);
+  }
+
+  void _setupMedicalNotesStream() {
+    final patientId = AuthService().currentUserId ?? 'patient-001';
+    _medicalNotesStream = _medicalNoteRepository.watchMedicalNotesByPatient(patientId);
   }
 
   void _refreshData() {
@@ -52,7 +59,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
           icon: const Icon(Icons.menu),
           onPressed: () {},
         ),
-        title: const Text('DocteurCardio'),
+        title: const Text('DocteurCardio (Patient)'),
         actions: [
           Stack(
             children: [
@@ -176,8 +183,8 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 // Carte dernière mesure
                 FadeInSlideUp(
                   delay: 400,
-                  child: FutureBuilder<List<MedicalNote>>(
-                  future: _medicalNotesFuture,
+                  child: StreamBuilder<List<MedicalNote>>(
+                  stream: _medicalNotesStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());

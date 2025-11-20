@@ -46,7 +46,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         _amount = 5000;
         _selectedPlan = 'STANDARD';
       } else if (_selectedSubscription == 'premium') {
-        _amount = 10000;
+        // Si c'est un upgrade (fromRegistration = false), payer la différence
+        // Sinon (nouvelle inscription), payer le montant complet
+        _amount = _fromRegistration ? 10000 : 5000; // Différence = 10000 - 5000 = 5000
         _selectedPlan = 'PREMIUM';
       }
     }

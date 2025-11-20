@@ -25,7 +25,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
   // Subscription state
   String _subscriptionPlan = 'STANDARD';
-  int _subscriptionPrice = 3000;
+  int _subscriptionPrice = 5000;
 
   @override
   void initState() {
@@ -921,7 +921,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      '5000 F/mois',
+                      '10000 F/mois',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -943,7 +943,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
-                        '💰 Différence: 2000 F/mois',
+                        '💰 Différence: 5000 F/mois',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.successGreen,
@@ -1001,7 +1001,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     if (result == true && mounted) {
       setState(() {
         _subscriptionPlan = 'PREMIUM';
-        _subscriptionPrice = 5000;
+        _subscriptionPrice = 10000;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

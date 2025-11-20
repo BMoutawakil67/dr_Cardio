@@ -32,7 +32,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   Future<void> _loadDoctor() async {
     final doctorId = AuthService().currentUserId ?? 'doctor-001';
+    print('🔍 [DoctorProfileScreen] Loading doctor with ID: $doctorId');
+
     final doctor = await _doctorRepository.getDoctor(doctorId);
+    print('📋 [DoctorProfileScreen] Doctor found: ${doctor != null ? '${doctor.firstName} ${doctor.lastName}' : 'NULL'}');
+
     final hours = await _hoursRepository.getConsultationHours(doctorId);
 
     if (mounted) {

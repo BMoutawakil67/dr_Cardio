@@ -120,17 +120,20 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
 
       // Récupérer le premier cardiologue de la liste
       final doctors = await _doctorRepository.getAllDoctors();
+      print('👨‍⚕️ [BiometricLogin] Found ${doctors.length} doctors in database');
 
       if (doctors.isEmpty) {
         throw Exception('Aucun cardiologue trouvé');
       }
 
       final firstDoctor = doctors.first;
+      print('✅ [BiometricLogin] First doctor: ${firstDoctor.firstName} ${firstDoctor.lastName} (ID: ${firstDoctor.id})');
 
       if (!mounted) return;
 
       // Se connecter avec le premier cardiologue
       AuthService().login(firstDoctor.id, 'doctor');
+      print('🔐 [BiometricLogin] Logged in with doctor ID: ${firstDoctor.id}');
 
       // Activer l'authentification biométrique pour les prochaines fois
       if (_isBiometricAvailable) {

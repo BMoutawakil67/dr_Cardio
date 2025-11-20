@@ -87,6 +87,32 @@ class ConversationRepository {
     }
   }
 
+  /// Stream that watches conversations for a specific doctor
+  /// Emits a new list whenever conversations are added, updated, or deleted
+  Stream<List<Conversation>> watchConversationsByDoctor(String doctorId) {
+    return _box.watch().map((_) {
+      final conversations = _box.values
+          .where((conv) => conv.doctorId == doctorId)
+          .toList();
+      // Sort by last message time (most recent first)
+      conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return conversations;
+    });
+  }
+
+  /// Stream that watches conversations for a specific patient
+  /// Emits a new list whenever conversations are added, updated, or deleted
+  Stream<List<Conversation>> watchConversationsByPatient(String patientId) {
+    return _box.watch().map((_) {
+      final conversations = _box.values
+          .where((conv) => conv.patientId == patientId)
+          .toList();
+      // Sort by last message time (most recent first)
+      conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return conversations;
+    });
+  }
+
   Future<Conversation?> getConversationBetween(
       String patientId, String doctorId) async {
     try {

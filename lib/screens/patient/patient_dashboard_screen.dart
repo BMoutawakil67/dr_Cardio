@@ -3,12 +3,15 @@ import 'package:dr_cardio/models/patient_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:dr_cardio/repositories/patient_repository.dart';
 import 'package:dr_cardio/services/auth_service.dart';
+import 'package:dr_cardio/services/unified_connectivity_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
+import 'package:dr_cardio/widgets/offline/offline_aware_widget.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 
 class PatientDashboardScreen extends StatefulWidget {
   const PatientDashboardScreen({super.key});
@@ -285,18 +288,10 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Prochain RDV
+                // Prochain RDV (Téléconsultation - nécessite connexion)
                 FadeInSlideUp(
                   delay: 1600,
-                  child: _AnimatedCard(
-                    child: ListTile(
-                    leading: const Icon(Icons.calendar_today_outlined),
-                    title: const Text('Prochain RDV: 05 Nov'),
-                    subtitle: const Text('Téléconsultation 10h00'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
-                    ),
-                  ),
+                  child: _TeleconsultationCard(),
                 ),
               ],
             ),
@@ -559,24 +554,176 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-class _MessagePreviewCard extends StatelessWidget {
+class _TeleconsultationCard extends StatefulWidget {
+  @override
+  State<_TeleconsultationCard> createState() => _TeleconsultationCardState();
+}
+
+class _TeleconsultationCardState extends State<_TeleconsultationCard> {
+  final UnifiedConnectivityService _connectivityService = UnifiedConnectivityService();
+  late bool _isOnline;
+  StreamSubscription<bool>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _isOnline = _connectivityService.isOnline;
+    _subscription = _connectivityService.connectionChange.listen((isOnline) {
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _showOfflineMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.wifi_off, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Téléconsultation non disponible hors ligne'),
+          ],
+        ),
+        backgroundColor: AppTheme.warningOrange,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _AnimatedCard(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFF31C48D).withOpacity(0.1),
-          child: Icon(
-            Icons.person,
-            color: const Color(0xFF31C48D),
+    return Opacity(
+      opacity: _isOnline ? 1.0 : 0.4,
+      child: _AnimatedCard(
+        child: ListTile(
+          leading: Icon(
+            Icons.calendar_today_outlined,
+            color: _isOnline ? null : Colors.grey,
           ),
+          title: Row(
+            children: [
+              Text(
+                'Prochain RDV: 05 Nov',
+                style: TextStyle(
+                  color: _isOnline ? null : Colors.grey,
+                ),
+              ),
+              if (!_isOnline) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.wifi_off, size: 16, color: Colors.grey),
+              ],
+            ],
+          ),
+          subtitle: Text(
+            'Téléconsultation 10h00',
+            style: TextStyle(
+              color: _isOnline ? null : Colors.grey,
+            ),
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: _isOnline
+              ? () {
+                  // Navigation vers la téléconsultation
+                }
+              : _showOfflineMessage,
         ),
-        title: const Text('💬 Messages (2 nouveaux)'),
-        subtitle: const Text('Dr. Kouassi vous a écrit'),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          Navigator.pushNamed(context, AppRoutes.patientMessages);
-        },
+      ),
+    );
+  }
+}
+
+class _MessagePreviewCard extends StatefulWidget {
+  @override
+  State<_MessagePreviewCard> createState() => _MessagePreviewCardState();
+}
+
+class _MessagePreviewCardState extends State<_MessagePreviewCard> {
+  final UnifiedConnectivityService _connectivityService = UnifiedConnectivityService();
+  late bool _isOnline;
+  StreamSubscription<bool>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _isOnline = _connectivityService.isOnline;
+    _subscription = _connectivityService.connectionChange.listen((isOnline) {
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  void _showOfflineMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.wifi_off, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Messages non disponible hors ligne'),
+          ],
+        ),
+        backgroundColor: AppTheme.warningOrange,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: _isOnline ? 1.0 : 0.4,
+      child: _AnimatedCard(
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFF31C48D).withOpacity(0.1),
+            child: Icon(
+              Icons.person,
+              color: _isOnline ? const Color(0xFF31C48D) : Colors.grey,
+            ),
+          ),
+          title: Row(
+            children: [
+              Text(
+                '💬 Messages (2 nouveaux)',
+                style: TextStyle(
+                  color: _isOnline ? null : Colors.grey,
+                ),
+              ),
+              if (!_isOnline) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.wifi_off, size: 16, color: Colors.grey),
+              ],
+            ],
+          ),
+          subtitle: Text(
+            'Dr. Kouassi vous a écrit',
+            style: TextStyle(
+              color: _isOnline ? null : Colors.grey,
+            ),
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          onTap: _isOnline
+              ? () => Navigator.pushNamed(context, AppRoutes.patientMessages)
+              : _showOfflineMessage,
+        ),
       ),
     );
   }

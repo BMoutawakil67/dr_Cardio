@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 class PatientHistoryScreen extends StatefulWidget {
   const PatientHistoryScreen({super.key});
@@ -38,6 +40,32 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
     }
   }
 
+  List<MedicalNote> _filterNotesByPeriod(List<MedicalNote> notes) {
+    final now = DateTime.now();
+    DateTime startDate;
+
+    switch (_selectedPeriod) {
+      case '7J':
+        startDate = now.subtract(const Duration(days: 7));
+        break;
+      case '1M':
+        startDate = DateTime(now.year, now.month - 1, now.day);
+        break;
+      case '3M':
+        startDate = DateTime(now.year, now.month - 3, now.day);
+        break;
+      case '6M':
+        startDate = DateTime(now.year, now.month - 6, now.day);
+        break;
+      case '1An':
+        startDate = DateTime(now.year - 1, now.month, now.day);
+        break;
+      default:
+        startDate = now.subtract(const Duration(days: 7));
+    }
+
+    return notes.where((note) => note.date.isAfter(startDate)).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,27 +132,59 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      height: 200,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('[Graphique interactif]'),
+                    FutureBuilder<List<MedicalNote>>(
+                      future: _medicalNotesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Container(
+                            height: 200,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(),
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Container(
+                            height: 200,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.show_chart, size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Aucune mesure enregistrée',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final notes = _filterNotesByPeriod(snapshot.data!);
+                        return _HistoryChart(notes: notes.reversed.toList());
+                      },
                     ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _LegendItem(
-                          color: AppTheme.primaryBlue,
+                          color: Colors.red,
                           label: 'Systolique',
                         ),
                         const SizedBox(width: 16),
                         _LegendItem(
-                          color: AppTheme.secondaryRed,
+                          color: AppTheme.primaryBlue,
                           label: 'Diastolique',
+                        ),
+                        const SizedBox(width: 16),
+                        _LegendItem(
+                          color: const Color(0xFF3DB9CE),
+                          label: 'Pouls',
                         ),
                       ],
                     ),
@@ -341,6 +401,206 @@ class _StatRow extends StatelessWidget {
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Graphique complet pour l'historique des mesures
+class _HistoryChart extends StatelessWidget {
+  final List<MedicalNote> notes;
+
+  const _HistoryChart({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    if (notes.isEmpty) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: Text('Aucune donnée', style: TextStyle(color: Colors.grey.shade600)),
+      );
+    }
+
+    return SizedBox(
+      height: 220,
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: 20,
+            getDrawingHorizontalLine: (value) {
+              return FlLine(
+                color: Colors.grey.shade200,
+                strokeWidth: 1,
+              );
+            },
+          ),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                interval: notes.length > 10 ? (notes.length / 5).ceilToDouble() : 1,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  if (index >= 0 && index < notes.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        DateFormat('dd/MM').format(notes[index].date),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    );
+                  }
+                  return const Text('');
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                interval: 30,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    value.toInt().toString(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(show: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(show: false)),
+          ),
+          borderData: FlBorderData(
+            show: true,
+            border: Border(
+              bottom: BorderSide(color: Colors.grey.shade300),
+              left: BorderSide(color: Colors.grey.shade300),
+            ),
+          ),
+          lineBarsData: [
+            // Systolique (rouge)
+            LineChartBarData(
+              spots: notes.asMap().entries.map((e) =>
+                FlSpot(e.key.toDouble(), e.value.systolic.toDouble())
+              ).toList(),
+              isCurved: true,
+              curveSmoothness: 0.3,
+              color: Colors.red,
+              barWidth: 2.5,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: Colors.white,
+                    strokeWidth: 2,
+                    strokeColor: Colors.red,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                color: Colors.red.withOpacity(0.08),
+              ),
+            ),
+            // Diastolique (bleu)
+            LineChartBarData(
+              spots: notes.asMap().entries.map((e) =>
+                FlSpot(e.key.toDouble(), e.value.diastolic.toDouble())
+              ).toList(),
+              isCurved: true,
+              curveSmoothness: 0.3,
+              color: AppTheme.primaryBlue,
+              barWidth: 2.5,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: Colors.white,
+                    strokeWidth: 2,
+                    strokeColor: AppTheme.primaryBlue,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                color: AppTheme.primaryBlue.withOpacity(0.08),
+              ),
+            ),
+            // Pouls (cyan)
+            LineChartBarData(
+              spots: notes.asMap().entries.map((e) =>
+                FlSpot(e.key.toDouble(), e.value.heartRate.toDouble())
+              ).toList(),
+              isCurved: true,
+              curveSmoothness: 0.3,
+              color: const Color(0xFF3DB9CE),
+              barWidth: 2,
+              dashArray: [5, 3],
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 3,
+                    color: Colors.white,
+                    strokeWidth: 1.5,
+                    strokeColor: const Color(0xFF3DB9CE),
+                  );
+                },
+              ),
+            ),
+          ],
+          minY: 40,
+          maxY: 200,
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (touchedSpot) => Colors.blueGrey.shade800,
+              tooltipRoundedRadius: 8,
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  String label;
+                  Color color;
+                  switch (spot.barIndex) {
+                    case 0:
+                      label = 'Sys';
+                      color = Colors.red.shade200;
+                      break;
+                    case 1:
+                      label = 'Dia';
+                      color = Colors.blue.shade200;
+                      break;
+                    case 2:
+                      label = 'Pouls';
+                      color = Colors.cyan.shade200;
+                      break;
+                    default:
+                      label = '';
+                      color = Colors.white;
+                  }
+                  return LineTooltipItem(
+                    '$label: ${spot.y.toInt()}',
+                    TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  );
+                }).toList();
+              },
+            ),
+          ),
+        ),
       ),
     );
   }

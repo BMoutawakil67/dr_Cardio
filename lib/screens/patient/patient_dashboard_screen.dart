@@ -11,6 +11,7 @@ import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
 import 'package:dr_cardio/widgets/offline/offline_aware_widget.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
 
 class PatientDashboardScreen extends StatefulWidget {
@@ -254,29 +255,51 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
                 const SizedBox(height: 16),
                 FadeInSlideUp(
                   delay: 1200,
-                  child: _AnimatedCard(
-                    child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 120,
-                          alignment: Alignment.center,
-                          child: const Text('[Mini graphique]'),
+                  child: StreamBuilder<List<MedicalNote>>(
+                    stream: _medicalNotesStream,
+                    builder: (context, snapshot) {
+                      final notes = snapshot.data ?? [];
+                      // Prendre les 7 dernières mesures
+                      final last7Notes = notes.take(7).toList().reversed.toList();
+
+                      return _AnimatedCard(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              if (last7Notes.isEmpty)
+                                Container(
+                                  height: 120,
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.show_chart, size: 40, color: Colors.grey.shade400),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Aucune mesure enregistrée',
+                                        style: TextStyle(color: Colors.grey.shade600),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                _TrendMiniChart(notes: last7Notes),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: () {
+                                  final patientId = AuthService().currentUserId;
+                                  if (patientId != null) {
+                                    Navigator.pushNamed(context, AppRoutes.patientHistory, arguments: {'patientId': patientId});
+                                  }
+                                },
+                                child: const Text('📊 Voir l\'historique complet'),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () {
-                            final patientId = AuthService().currentUserId;
-                            if (patientId != null) {
-                              Navigator.pushNamed(context, AppRoutes.patientHistory, arguments: {'patientId': patientId});
-                            }
-                          },
-                          child: const Text('📊 Voir l\'historique complet'),
-                        ),
-                      ],
-                    ),
-                    ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -725,6 +748,190 @@ class _MessagePreviewCardState extends State<_MessagePreviewCard> {
               : _showOfflineMessage,
         ),
       ),
+    );
+  }
+}
+
+/// Mini graphique de tendance pour le dashboard
+class _TrendMiniChart extends StatelessWidget {
+  final List<MedicalNote> notes;
+
+  const _TrendMiniChart({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Légende
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildLegendItem('Systolique', Colors.red),
+            const SizedBox(width: 20),
+            _buildLegendItem('Diastolique', AppTheme.primaryBlue),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Graphique
+        SizedBox(
+          height: 120,
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: 20,
+                getDrawingHorizontalLine: (value) {
+                  return FlLine(
+                    color: Colors.grey.shade200,
+                    strokeWidth: 1,
+                  );
+                },
+              ),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      final index = value.toInt();
+                      if (index >= 0 && index < notes.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            DateFormat('dd/MM').format(notes[index].date),
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        );
+                      }
+                      return const Text('');
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 35,
+                    interval: 40,
+                    getTitlesWidget: (value, meta) {
+                      return Text(
+                        value.toInt().toString(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                topTitles: const AxisTitles(sideTitles: SideTitles(show: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(show: false)),
+              ),
+              borderData: FlBorderData(show: false),
+              lineBarsData: [
+                // Ligne Systolique (rouge)
+                LineChartBarData(
+                  spots: notes.asMap().entries.map((e) =>
+                    FlSpot(e.key.toDouble(), e.value.systolic.toDouble())
+                  ).toList(),
+                  isCurved: true,
+                  curveSmoothness: 0.3,
+                  color: Colors.red,
+                  barWidth: 2.5,
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) {
+                      return FlDotCirclePainter(
+                        radius: 3,
+                        color: Colors.white,
+                        strokeWidth: 2,
+                        strokeColor: Colors.red,
+                      );
+                    },
+                  ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: Colors.red.withOpacity(0.1),
+                  ),
+                ),
+                // Ligne Diastolique (bleu)
+                LineChartBarData(
+                  spots: notes.asMap().entries.map((e) =>
+                    FlSpot(e.key.toDouble(), e.value.diastolic.toDouble())
+                  ).toList(),
+                  isCurved: true,
+                  curveSmoothness: 0.3,
+                  color: AppTheme.primaryBlue,
+                  barWidth: 2.5,
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) {
+                      return FlDotCirclePainter(
+                        radius: 3,
+                        color: Colors.white,
+                        strokeWidth: 2,
+                        strokeColor: AppTheme.primaryBlue,
+                      );
+                    },
+                  ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                  ),
+                ),
+              ],
+              minY: 50,
+              maxY: 180,
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipColor: (touchedSpot) => Colors.blueGrey.shade800,
+                  getTooltipItems: (touchedSpots) {
+                    return touchedSpots.map((spot) {
+                      final isSystolic = spot.barIndex == 0;
+                      return LineTooltipItem(
+                        '${isSystolic ? "Sys" : "Dia"}: ${spot.y.toInt()}',
+                        TextStyle(
+                          color: isSystolic ? Colors.red.shade200 : Colors.blue.shade200,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      );
+                    }).toList();
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
     );
   }
 }

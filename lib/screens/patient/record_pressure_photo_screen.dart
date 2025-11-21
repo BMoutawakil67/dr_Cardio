@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:dr_cardio/services/auth_service.dart';
+import 'package:dr_cardio/services/ocr/blood_pressure_ocr_service.dart';
 
 class RecordPressurePhotoScreen extends StatefulWidget {
   const RecordPressurePhotoScreen({super.key});
@@ -18,16 +19,20 @@ class RecordPressurePhotoScreen extends StatefulWidget {
 class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
   bool _isProcessing = false;
   bool _isValidated = false;
+  String _processingStatus = 'Initialisation...';
+  double _processingProgress = 0.0;
 
-  // Image picker
+  // Image picker & OCR
   final ImagePicker _picker = ImagePicker();
+  final BloodPressureOcrService _ocrService = BloodPressureOcrService();
   XFile? _capturedImage;
   final MedicalNoteRepository _repository = MedicalNoteRepository();
+  BloodPressureOcrResult? _ocrResult;
 
-  // Valeurs détectées par OCR (simulées)
-  final _systolicController = TextEditingController(text: '14');
-  final _diastolicController = TextEditingController(text: '9');
-  final _pulseController = TextEditingController(text: '72');
+  // Valeurs détectées par OCR
+  final _systolicController = TextEditingController();
+  final _diastolicController = TextEditingController();
+  final _pulseController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   String _context = '';
@@ -46,6 +51,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
     _systolicController.dispose();
     _diastolicController.dispose();
     _pulseController.dispose();
+    _ocrService.dispose();
     super.dispose();
   }
 
@@ -249,18 +255,18 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
               Container(
                 constraints: const BoxConstraints(maxWidth: 300),
                 child: LinearProgressIndicator(
-                  value: 0.85,
+                  value: _processingProgress,
                   backgroundColor: Colors.grey.shade200,
                   valueColor:
                       const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
                 ),
               ),
               const SizedBox(height: 8),
-              const Text('85%'),
+              Text('${(_processingProgress * 100).toInt()}%'),
               const SizedBox(height: 24),
 
               Text(
-                'Extraction des valeurs...',
+                _processingStatus,
                 style: TextStyle(color: Colors.grey.shade600),
               ),
             ],
@@ -308,24 +314,50 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                 ),
               ),
 
-            // Message succès
+            // Message succès ou avertissement
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.successGreen.withValues(alpha: 0.1),
+                color: (_ocrResult?.isValid ?? false)
+                    ? AppTheme.successGreen.withValues(alpha: 0.1)
+                    : AppTheme.warningOrange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.check_circle, color: AppTheme.successGreen),
-                  SizedBox(width: 12),
+                  Icon(
+                    (_ocrResult?.isValid ?? false)
+                        ? Icons.check_circle
+                        : Icons.warning_amber,
+                    color: (_ocrResult?.isValid ?? false)
+                        ? AppTheme.successGreen
+                        : AppTheme.warningOrange,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      '✅ Photo analysée avec succès',
-                      style: TextStyle(
-                        color: AppTheme.successGreen,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          (_ocrResult?.isValid ?? false)
+                              ? '✅ Valeurs détectées'
+                              : '⚠️ Détection partielle',
+                          style: TextStyle(
+                            color: (_ocrResult?.isValid ?? false)
+                                ? AppTheme.successGreen
+                                : AppTheme.warningOrange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (_ocrResult != null)
+                          Text(
+                            'Confiance: ${(_ocrResult!.confidence * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
@@ -534,20 +566,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
       );
 
       if (image != null) {
-        setState(() {
-          _capturedImage = image;
-          _isProcessing = true;
-        });
-
-        // Simuler le traitement OCR (2 secondes)
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-            _isValidated = true;
-          });
-        }
+        await _processImage(image);
       }
     } catch (e) {
       if (mounted) {
@@ -561,6 +580,55 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
     }
   }
 
+  Future<void> _processImage(XFile image) async {
+    setState(() {
+      _capturedImage = image;
+      _isProcessing = true;
+      _processingProgress = 0.1;
+      _processingStatus = 'Chargement de l\'image...';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (!mounted) return;
+    setState(() {
+      _processingProgress = 0.3;
+      _processingStatus = 'Analyse OCR en cours...';
+    });
+
+    // Appel réel au service OCR
+    final result = await _ocrService.extractBloodPressure(image.path);
+
+    if (!mounted) return;
+    setState(() {
+      _processingProgress = 0.8;
+      _processingStatus = 'Extraction des valeurs...';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (!mounted) return;
+    setState(() {
+      _ocrResult = result;
+      _processingProgress = 1.0;
+      _processingStatus = 'Terminé!';
+
+      // Remplir les contrôleurs avec les valeurs détectées
+      _systolicController.text = result.systolic?.toString() ?? '';
+      _diastolicController.text = result.diastolic?.toString() ?? '';
+      _pulseController.text = result.pulse?.toString() ?? '';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+        _isValidated = true;
+      });
+    }
+  }
+
   Future<void> _openGallery() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -569,20 +637,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
       );
 
       if (image != null) {
-        setState(() {
-          _capturedImage = image;
-          _isProcessing = true;
-        });
-
-        // Simuler le traitement OCR (2 secondes)
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-            _isValidated = true;
-          });
-        }
+        await _processImage(image);
       }
     } catch (e) {
       if (mounted) {

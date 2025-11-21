@@ -45,7 +45,10 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
 
   void _setupMedicalNotesStream() {
     final patientId = AuthService().currentUserId ?? 'patient-001';
-    _medicalNotesStream = _medicalNoteRepository.watchMedicalNotesByPatient(patientId);
+    // Utiliser asBroadcastStream() pour permettre plusieurs listeners (StreamBuilders)
+    _medicalNotesStream = _medicalNoteRepository
+        .watchMedicalNotesByPatient(patientId)
+        .asBroadcastStream();
   }
 
   void _refreshData() {

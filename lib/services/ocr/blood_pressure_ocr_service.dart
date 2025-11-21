@@ -83,15 +83,34 @@ class BloodPressureOcrService {
     double confidence = 0.5;
 
     // Stratégie 1: Chercher des patterns avec labels (SYS: XXX, DIA: XX, PUL: XX)
-    final labelPatterns = {
+    // Cas 1: Label à gauche (SYS: 120 ou SYS 120)
+    final labelLeftPatterns = {
       'SYS': RegExp(r'SYS[:\s]*(\d{2,3})', caseSensitive: false),
       'DIA': RegExp(r'DIA[:\s]*(\d{2,3})', caseSensitive: false),
       'PUL': RegExp(r'PUL[:\s]*(\d{2,3})', caseSensitive: false),
     };
 
-    final sysMatch = labelPatterns['SYS']!.firstMatch(cleanText);
-    final diaMatch = labelPatterns['DIA']!.firstMatch(cleanText);
-    final pulMatch = labelPatterns['PUL']!.firstMatch(cleanText);
+    // Cas 2: Label à droite (120 SYS ou 120 mmHg SYS)
+    final labelRightPatterns = {
+      'SYS': RegExp(r'(\d{2,3})\s*(?:mmHg)?\s*SYS', caseSensitive: false),
+      'DIA': RegExp(r'(\d{2,3})\s*(?:mmHg)?\s*DIA', caseSensitive: false),
+      'PUL': RegExp(r'(\d{2,3})\s*(?:bpm)?\s*PUL', caseSensitive: false),
+    };
+
+    var sysMatch = labelLeftPatterns['SYS']!.firstMatch(cleanText);
+    var diaMatch = labelLeftPatterns['DIA']!.firstMatch(cleanText);
+    var pulMatch = labelLeftPatterns['PUL']!.firstMatch(cleanText);
+
+    // Si pas trouvé à gauche, chercher à droite
+    if (sysMatch == null) {
+      sysMatch = labelRightPatterns['SYS']!.firstMatch(cleanText);
+    }
+    if (diaMatch == null) {
+      diaMatch = labelRightPatterns['DIA']!.firstMatch(cleanText);
+    }
+    if (pulMatch == null) {
+      pulMatch = labelRightPatterns['PUL']!.firstMatch(cleanText);
+    }
 
     if (sysMatch != null && diaMatch != null) {
       systolic = int.parse(sysMatch.group(1)!);

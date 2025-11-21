@@ -303,13 +303,15 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade300),
+                  color: Colors.grey.shade100,
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.file(
                     File(_capturedImage!.path),
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     width: double.infinity,
+                    height: 180,
                   ),
                 ),
               ),
@@ -349,7 +351,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (_ocrResult != null)
+                        if (_ocrResult != null) ...[
                           Text(
                             'Confiance: ${(_ocrResult!.confidence * 100).toInt()}%',
                             style: TextStyle(
@@ -357,6 +359,15 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                               color: Colors.grey.shade600,
                             ),
                           ),
+                          if (_ocrResult!.rawText.isNotEmpty)
+                            Text(
+                              'Texte: ${_ocrResult!.rawText.length > 50 ? '${_ocrResult!.rawText.substring(0, 50)}...' : _ocrResult!.rawText}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                        ],
                       ],
                     ),
                   ),

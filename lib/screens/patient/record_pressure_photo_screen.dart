@@ -359,9 +359,17 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                               color: Colors.grey.shade600,
                             ),
                           ),
+                          if (_ocrResult!.error != null)
+                            Text(
+                              'Erreur: ${_ocrResult!.error}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.red,
+                              ),
+                            ),
                           if (_ocrResult!.rawText.isNotEmpty)
                             Text(
-                              'Texte: ${_ocrResult!.rawText.length > 50 ? '${_ocrResult!.rawText.substring(0, 50)}...' : _ocrResult!.rawText}',
+                              'Texte: ${_ocrResult!.rawText.length > 80 ? '${_ocrResult!.rawText.substring(0, 80)}...' : _ocrResult!.rawText}',
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey.shade500,

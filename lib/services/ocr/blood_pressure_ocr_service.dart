@@ -1,5 +1,6 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:dr_cardio/utils/logger.dart';
+import 'package:flutter/foundation.dart';
 
 /// Résultat de l'extraction OCR des valeurs de tension
 class BloodPressureOcrResult {
@@ -8,6 +9,7 @@ class BloodPressureOcrResult {
   final int? pulse;
   final double confidence;
   final String rawText;
+  final String? error;
 
   BloodPressureOcrResult({
     this.systolic,
@@ -15,6 +17,7 @@ class BloodPressureOcrResult {
     this.pulse,
     this.confidence = 0.0,
     this.rawText = '',
+    this.error,
   });
 
   bool get isValid => systolic != null && diastolic != null;
@@ -32,15 +35,32 @@ class BloodPressureOcrService {
   /// Analyse une image et extrait les valeurs de tension
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
     try {
+      debugPrint('🔍 OCR: Analyse de $imagePath');
+
       final inputImage = InputImage.fromFilePath(imagePath);
+      debugPrint('🔍 OCR: Image chargée');
+
       final recognizedText = await _textRecognizer.processImage(inputImage);
+      debugPrint('🔍 OCR: Texte reconnu: "${recognizedText.text}"');
 
       logger.i('OCR Raw Text: ${recognizedText.text}');
 
+      if (recognizedText.text.isEmpty) {
+        return BloodPressureOcrResult(
+          rawText: '(aucun texte détecté)',
+          error: 'Aucun texte détecté dans l\'image',
+        );
+      }
+
       return _parseBloodPressureValues(recognizedText.text);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ OCR Erreur: $e');
+      debugPrint('❌ Stack: $stackTrace');
       logger.e('Erreur OCR: $e');
-      return BloodPressureOcrResult(rawText: 'Erreur: $e');
+      return BloodPressureOcrResult(
+        rawText: '',
+        error: e.toString(),
+      );
     }
   }
 

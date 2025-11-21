@@ -118,18 +118,43 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                     width: 300,
                     height: 200,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(color: Colors.greenAccent, width: 3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
-                      child: Text(
-                        'Cadrez les chiffres\ndu tensiomètre',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'CADREZ UNIQUEMENT',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.greenAccent,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '120 / 80 / 70',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '(ÉCRAN LCD DU TENSIOMÈTRE)',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -169,7 +194,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '💡 Conseils:',
+                        '💡 Conseils pour une bonne détection:',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -177,15 +202,19 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        '• Bon éclairage',
+                        '• Cadrez UNIQUEMENT les chiffres de tension',
                         style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       Text(
-                        '• Tensiomètre bien cadré',
+                        '• Tensiomètre bien allumé et éclairé',
                         style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       Text(
-                        '• Image nette',
+                        '• Distance: 15-20cm de l\'écran LCD',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                      Text(
+                        '• Photo nette (pas de flou)',
                         style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                     ],
@@ -382,6 +411,50 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Conseils si détection partielle
+            if (!(_ocrResult?.isValid ?? false))
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb_outline, color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Conseils pour améliorer la détection',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTipItem('📸 Cadrez uniquement l\'écran LCD du tensiomètre'),
+                    _buildTipItem('💡 Bon éclairage sans reflets'),
+                    _buildTipItem('📏 Distance: 15-20cm de l\'écran'),
+                    _buildTipItem('🎯 Photo nette et bien cadrée'),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Vous pouvez corriger manuellement les valeurs ci-dessous',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 24),
 
             Text(
@@ -505,6 +578,25 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Helper pour afficher un conseil
+  Widget _buildTipItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: TextStyle(color: Colors.grey.shade700)),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -72,49 +72,58 @@ google_mlkit_text_recognition: ^0.12.0
 
 ---
 
-## Problème identifié
+## Problème identifié ✅ RÉSOLU
 
 ### Résultat du terminal
 ```
+🔍 OCR: Texte reconnu: "Infinix SMART7 HD
+Spengler
+8:30        ← extrait "30"
+10.08.      ← extrait "10" et "08"
+AutoTensio
+M
+SYS         ← Label seulement, pas de valeur!
+DIA         ← Label seulement, pas de valeur!
+PUL"        ← Label seulement, pas de valeur!
+
 💡 Nombres extraits: [30, 10, 8]
 ```
 
 ### Analyse
-- L'OCR **fonctionne** et détecte du texte
-- Les nombres détectés `[30, 10, 8]` ne passent pas la validation:
-  - `30` < 70 (hors plage systolique)
-  - `10` < 40 (hors plage diastolique)
-  - `8` < 30 (hors plage pouls)
+- ML Kit **fonctionne correctement**
+- **Problème**: L'image inclut TOUTE l'interface du tensiomètre (heure, date, marque, icônes)
+- ML Kit détecte l'heure `8:30` et la date `10.08.` mais **PAS les valeurs de tension**
+- Les labels `SYS`, `DIA`, `PUL` sont visibles mais les chiffres `120`, `80`, `70` ne sont **pas détectés**
 
-### Causes possibles
-1. **Image mal cadrée** - les vrais chiffres de tension ne sont pas visibles
-2. **Autres éléments détectés** - batterie, heure, icônes du tensiomètre
-3. **Qualité d'image** - chiffres flous ou trop petits
-4. **Format d'affichage** - certains tensiomètres affichent `12.0` au lieu de `120`
+### Cause identifiée
+**Photo trop large et mal cadrée**:
+1. L'écran LCD du tensiomètre est trop petit dans l'image
+2. Les chiffres de tension sont flous ou mal éclairés
+3. L'utilisateur a photographié toute l'interface au lieu de zoomer sur les valeurs
 
 ---
 
-## Pistes d'amélioration
+## Solution implémentée ✅
 
-### 1. Élargir la regex pour décimales
-```dart
-// Détecter "12.0" comme "120"
-final decimalPattern = RegExp(r'(\d{1,2})[.,](\d)');
+### Amélioration de l'UI pour guider l'utilisateur
+
+**1. Cadre de guidage amélioré**
+- Bordure verte avec exemple visuel `120 / 80 / 70`
+- Message clair: "CADREZ UNIQUEMENT L'ÉCRAN LCD"
+
+**2. Conseils détaillés**
+```
+• Cadrez UNIQUEMENT les chiffres de tension
+• Tensiomètre bien allumé et éclairé
+• Distance: 15-20cm de l'écran LCD
+• Photo nette (pas de flou)
 ```
 
-### 2. Améliorer l'extraction des nombres
-```dart
-// Inclure les nombres à 1 chiffre pour reconstituer
-final numberPattern = RegExp(r'\d+');
-```
-
-### 3. Ajouter des hints visuels
-- Guide de cadrage plus précis
-- Conseils pour bien positionner le tensiomètre
-
-### 4. Améliorer le parsing
-- Reconnaître les formats courants de tensiomètres
-- Combiner des chiffres proches (ex: "12" "0" → "120")
+**3. Instructions pour l'utilisateur**
+- **NE PAS photographier**: Toute l'interface, la marque, l'heure, la date
+- **PHOTOGRAPHIER UNIQUEMENT**: Les chiffres LCD `120 / 80 / 70`
+- **Distance recommandée**: 15-20cm pour un bon contraste
+- **Éclairage**: Bien éclairer l'écran LCD sans reflets
 
 ---
 

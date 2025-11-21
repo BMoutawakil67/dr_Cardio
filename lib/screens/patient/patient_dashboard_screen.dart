@@ -828,8 +828,8 @@ class _TrendMiniChart extends StatelessWidget {
                     },
                   ),
                 ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(show: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(show: false)),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
               borderData: FlBorderData(show: false),
               lineBarsData: [

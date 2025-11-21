@@ -17,13 +17,19 @@ class PatientHistoryScreen extends StatefulWidget {
 
 class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
   final MedicalNoteRepository _medicalNoteRepository = MedicalNoteRepository();
-  late Future<List<MedicalNote>> _medicalNotesFuture;
+  Stream<List<MedicalNote>>? _medicalNotesStream;
   String _selectedPeriod = '7J';
   String? _patientId;
+  bool _isInitialized = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
+    // N'initialiser qu'une seule fois
+    if (_isInitialized) return;
+    _isInitialized = true;
+
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null && args.containsKey('patientId')) {
@@ -34,9 +40,10 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
     }
 
     if (_patientId != null) {
-      _medicalNotesFuture = _medicalNoteRepository.getMedicalNotesByPatient(_patientId!);
-    } else {
-      _medicalNotesFuture = Future.value([]);
+      // Utiliser Stream pour mise à jour automatique après suppression/ajout
+      _medicalNotesStream = _medicalNoteRepository
+          .watchMedicalNotesByPatient(_patientId!)
+          .asBroadcastStream();
     }
   }
 
@@ -132,10 +139,10 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
-                    FutureBuilder<List<MedicalNote>>(
-                      future: _medicalNotesFuture,
+                    StreamBuilder<List<MedicalNote>>(
+                      stream: _medicalNotesStream,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                           return Container(
                             height: 200,
                             alignment: Alignment.center,
@@ -200,10 +207,10 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            FutureBuilder<List<MedicalNote>>(
-              future: _medicalNotesFuture,
+            StreamBuilder<List<MedicalNote>>(
+              stream: _medicalNotesStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Card(
                     child: Padding(
                       padding: EdgeInsets.all(16),
@@ -307,10 +314,10 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            FutureBuilder<List<MedicalNote>>(
-              future: _medicalNotesFuture,
+            StreamBuilder<List<MedicalNote>>(
+              stream: _medicalNotesStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {

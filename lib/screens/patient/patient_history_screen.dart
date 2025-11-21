@@ -724,6 +724,7 @@ class _MeasureCard extends StatelessWidget {
                       context,
                       AppRoutes.measureDetail,
                       arguments: {
+                        'noteId': noteId,
                         'date': date,
                         'systolic': systolic,
                         'diastolic': diastolic,

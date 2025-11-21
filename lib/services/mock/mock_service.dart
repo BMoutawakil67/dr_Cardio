@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dr_cardio/data/local/hive_database.dart';
 import 'package:dr_cardio/models/doctor_model.dart';
 import 'package:dr_cardio/models/medical_note_model.dart';
@@ -38,7 +40,8 @@ class MockService {
         logger.i('Generated and saved mock medical notes.');
       }
 
-      final conversationBox = Hive.box<Conversation>(HiveDatabase.conversationBox);
+      final conversationBox =
+          Hive.box<Conversation>(HiveDatabase.conversationBox);
       if (conversationBox.isEmpty) {
         final conversations = _generateMockConversations();
         for (var conversation in conversations) {
@@ -172,6 +175,7 @@ class MockService {
 
   static List<MedicalNote> _generateMockMedicalNotes() {
     final now = DateTime.now();
+    final random = Random();
 
     return [
       // Patient 001 - Multiple mesures
@@ -180,9 +184,9 @@ class MockService {
         patientId: 'patient-001',
         doctorId: 'doctor-001',
         date: now,
-        systolic: 12,
-        diastolic: 8,
-        heartRate: 70,
+        systolic: 120 + random.nextInt(20),
+        diastolic: 80 + random.nextInt(10),
+        heartRate: 70 + random.nextInt(10),
         context: 'Prise matin à jeun',
       ),
       MedicalNote(
@@ -190,9 +194,9 @@ class MockService {
         patientId: 'patient-001',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(days: 1)),
-        systolic: 13,
-        diastolic: 9,
-        heartRate: 75,
+        systolic: 130 + random.nextInt(15),
+        diastolic: 90 + random.nextInt(10),
+        heartRate: 75 + random.nextInt(10),
         context: 'Après exercice',
       ),
       MedicalNote(
@@ -200,9 +204,9 @@ class MockService {
         patientId: 'patient-001',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(days: 3)),
-        systolic: 14,
-        diastolic: 9,
-        heartRate: 72,
+        systolic: 180 + random.nextInt(20),
+        diastolic: 120 + random.nextInt(10),
+        heartRate: 80 + random.nextInt(15),
         context: 'Médicaments: Amlodipine 5mg',
       ),
       MedicalNote(
@@ -210,9 +214,9 @@ class MockService {
         patientId: 'patient-001',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(days: 7)),
-        systolic: 15,
-        diastolic: 10,
-        heartRate: 78,
+        systolic: 140 + random.nextInt(20),
+        diastolic: 90 + random.nextInt(10),
+        heartRate: 90 + random.nextInt(10),
         context: 'Stress au travail',
       ),
       MedicalNote(
@@ -220,9 +224,9 @@ class MockService {
         patientId: 'patient-001',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(days: 14)),
-        systolic: 16,
-        diastolic: 11,
-        heartRate: 82,
+        systolic: 125 + random.nextInt(10),
+        diastolic: 85 + random.nextInt(5),
+        heartRate: 82 + random.nextInt(8),
         context: 'Consultation de routine',
       ),
 
@@ -232,9 +236,9 @@ class MockService {
         patientId: 'patient-002',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(hours: 12)),
-        systolic: 11,
-        diastolic: 7,
-        heartRate: 65,
+        systolic: 110 + random.nextInt(10),
+        diastolic: 70 + random.nextInt(10),
+        heartRate: 65 + random.nextInt(5),
         context: 'Prise du soir',
       ),
       MedicalNote(
@@ -242,9 +246,9 @@ class MockService {
         patientId: 'patient-002',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(days: 2)),
-        systolic: 12,
-        diastolic: 8,
-        heartRate: 68,
+        systolic: 120 + random.nextInt(10),
+        diastolic: 80 + random.nextInt(5),
+        heartRate: 68 + random.nextInt(5),
         context: 'Mesure normale',
       ),
       MedicalNote(
@@ -252,9 +256,9 @@ class MockService {
         patientId: 'patient-002',
         doctorId: 'doctor-001',
         date: now.subtract(const Duration(days: 5)),
-        systolic: 13,
-        diastolic: 8,
-        heartRate: 70,
+        systolic: 130 + random.nextInt(10),
+        diastolic: 80 + random.nextInt(5),
+        heartRate: 70 + random.nextInt(5),
         context: 'Après repas',
       ),
 
@@ -264,9 +268,9 @@ class MockService {
         patientId: 'patient-003',
         doctorId: 'doctor-002',
         date: now.subtract(const Duration(hours: 6)),
-        systolic: 17,
-        diastolic: 11,
-        heartRate: 85,
+        systolic: 170 + random.nextInt(10),
+        diastolic: 110 + random.nextInt(10),
+        heartRate: 85 + random.nextInt(5),
         context: 'Hypertension détectée',
       ),
       MedicalNote(
@@ -274,9 +278,9 @@ class MockService {
         patientId: 'patient-003',
         doctorId: 'doctor-002',
         date: now.subtract(const Duration(days: 1)),
-        systolic: 18,
-        diastolic: 12,
-        heartRate: 88,
+        systolic: 180 + random.nextInt(10),
+        diastolic: 120 + random.nextInt(5),
+        heartRate: 88 + random.nextInt(5),
         context: 'Médicaments: Enalapril 10mg',
       ),
       MedicalNote(
@@ -284,9 +288,9 @@ class MockService {
         patientId: 'patient-003',
         doctorId: 'doctor-002',
         date: now.subtract(const Duration(days: 4)),
-        systolic: 16,
-        diastolic: 10,
-        heartRate: 80,
+        systolic: 160 + random.nextInt(10),
+        diastolic: 100 + random.nextInt(10),
+        heartRate: 80 + random.nextInt(5),
         context: 'Amélioration après traitement',
       ),
 
@@ -296,9 +300,9 @@ class MockService {
         patientId: 'patient-004',
         doctorId: 'doctor-002',
         date: now.subtract(const Duration(hours: 18)),
-        systolic: 10,
-        diastolic: 7,
-        heartRate: 62,
+        systolic: 100 + random.nextInt(10),
+        diastolic: 70 + random.nextInt(5),
+        heartRate: 62 + random.nextInt(5),
         context: 'Tension normale',
       ),
       MedicalNote(
@@ -306,9 +310,9 @@ class MockService {
         patientId: 'patient-004',
         doctorId: 'doctor-002',
         date: now.subtract(const Duration(days: 3)),
-        systolic: 11,
-        diastolic: 7,
-        heartRate: 64,
+        systolic: 110 + random.nextInt(10),
+        diastolic: 70 + random.nextInt(5),
+        heartRate: 64 + random.nextInt(5),
         context: 'Prise matin',
       ),
 
@@ -318,9 +322,9 @@ class MockService {
         patientId: 'patient-005',
         doctorId: 'doctor-003',
         date: now,
-        systolic: 14,
-        diastolic: 9,
-        heartRate: 74,
+        systolic: 140 + random.nextInt(10),
+        diastolic: 90 + random.nextInt(5),
+        heartRate: 74 + random.nextInt(5),
         context: 'Consultation de suivi',
       ),
       MedicalNote(
@@ -328,9 +332,9 @@ class MockService {
         patientId: 'patient-005',
         doctorId: 'doctor-003',
         date: now.subtract(const Duration(days: 2)),
-        systolic: 15,
-        diastolic: 10,
-        heartRate: 76,
+        systolic: 150 + random.nextInt(10),
+        diastolic: 100 + random.nextInt(5),
+        heartRate: 76 + random.nextInt(5),
         context: 'Activité physique modérée',
       ),
       MedicalNote(
@@ -338,9 +342,9 @@ class MockService {
         patientId: 'patient-005',
         doctorId: 'doctor-003',
         date: now.subtract(const Duration(days: 6)),
-        systolic: 14,
-        diastolic: 9,
-        heartRate: 72,
+        systolic: 140 + random.nextInt(10),
+        diastolic: 90 + random.nextInt(5),
+        heartRate: 72 + random.nextInt(5),
         context: 'Médicaments: Losartan 50mg',
       ),
 
@@ -350,9 +354,9 @@ class MockService {
         patientId: 'patient-006',
         doctorId: 'doctor-003',
         date: now.subtract(const Duration(hours: 8)),
-        systolic: 13,
-        diastolic: 8,
-        heartRate: 69,
+        systolic: 130 + random.nextInt(10),
+        diastolic: 80 + random.nextInt(5),
+        heartRate: 69 + random.nextInt(5),
         context: 'Prise après réveil',
       ),
       MedicalNote(
@@ -360,9 +364,9 @@ class MockService {
         patientId: 'patient-006',
         doctorId: 'doctor-003',
         date: now.subtract(const Duration(days: 1)),
-        systolic: 12,
-        diastolic: 8,
-        heartRate: 68,
+        systolic: 120 + random.nextInt(10),
+        diastolic: 80 + random.nextInt(5),
+        heartRate: 68 + random.nextInt(5),
         context: 'Tension stable',
       ),
       MedicalNote(
@@ -370,9 +374,9 @@ class MockService {
         patientId: 'patient-006',
         doctorId: 'doctor-003',
         date: now.subtract(const Duration(days: 4)),
-        systolic: 14,
-        diastolic: 9,
-        heartRate: 71,
+        systolic: 140 + random.nextInt(10),
+        diastolic: 90 + random.nextInt(5),
+        heartRate: 71 + random.nextInt(5),
         context: 'Après activité physique',
       ),
       MedicalNote(
@@ -380,9 +384,9 @@ class MockService {
         patientId: 'patient-006',
         doctorId: 'doctor-003',
         date: now.subtract(const Duration(days: 8)),
-        systolic: 13,
-        diastolic: 8,
-        heartRate: 70,
+        systolic: 130 + random.nextInt(10),
+        diastolic: 80 + random.nextInt(5),
+        heartRate: 70 + random.nextInt(5),
         context: 'Première mesure',
       ),
     ];
@@ -514,7 +518,8 @@ class MockService {
         conversationId: 'conv-001',
         senderId: 'doctor-001',
         receiverId: 'patient-001',
-        text: 'Bonjour Jean, c\'est un peu élevé. Avez-vous bien pris vos médicaments?',
+        text:
+            'Bonjour Jean, c\'est un peu élevé. Avez-vous bien pris vos médicaments?',
         timestamp: now.subtract(const Duration(hours: 2, minutes: 57)),
         isRead: true,
       ),
@@ -698,7 +703,8 @@ class MockService {
         conversationId: 'conv-006',
         senderId: 'doctor-001',
         receiverId: 'patient-006',
-        text: 'Bonjour Aïcha, n\'oubliez pas de prendre vos médicaments régulièrement',
+        text:
+            'Bonjour Aïcha, n\'oubliez pas de prendre vos médicaments régulièrement',
         timestamp: now.subtract(const Duration(days: 2, hours: 10)),
         isRead: true,
       ),

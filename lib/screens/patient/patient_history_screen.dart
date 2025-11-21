@@ -21,6 +21,7 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
   String _selectedPeriod = '7J';
   String? _patientId;
   bool _isInitialized = false;
+  int _streamKey = 0; // Clé pour forcer la recréation du stream
 
   @override
   void didChangeDependencies() {
@@ -39,12 +40,22 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
       _patientId = AuthService().currentUserId;
     }
 
+    _initStream();
+  }
+
+  void _initStream() {
     if (_patientId != null) {
-      // Utiliser Stream pour mise à jour automatique après suppression/ajout
       _medicalNotesStream = _medicalNoteRepository
           .watchMedicalNotesByPatient(_patientId!)
           .asBroadcastStream();
     }
+  }
+
+  void _refreshStream() {
+    setState(() {
+      _streamKey++;
+      _initStream();
+    });
   }
 
   List<MedicalNote> _filterNotesByPeriod(List<MedicalNote> notes) {
@@ -346,6 +357,7 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                       status: 'Normal', // TODO: Implement status logic
                       statusColor: AppTheme.successGreen, // TODO: Implement color logic
                       context: note.context,
+                      onRefresh: _refreshStream,
                     );
                   },
                 );
@@ -624,6 +636,7 @@ class _MeasureCard extends StatelessWidget {
   final Color statusColor;
   final String? context;
   final String? warning;
+  final VoidCallback? onRefresh;
 
   const _MeasureCard({
     required this.noteId,
@@ -636,6 +649,7 @@ class _MeasureCard extends StatelessWidget {
     required this.statusColor,
     this.context,
     this.warning,
+    this.onRefresh,
   });
 
   @override
@@ -732,7 +746,9 @@ class _MeasureCard extends StatelessWidget {
                         'status': status,
                         'context': this.context,
                       },
-                    );
+                    ).then((_) {
+                      if (onRefresh != null) onRefresh!();
+                    });
                   },
                   child: const Text('Détails >'),
                 ),

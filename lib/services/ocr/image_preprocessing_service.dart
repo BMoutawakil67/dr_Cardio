@@ -188,17 +188,37 @@ class ImagePreprocessingService {
 
   /// Applique un filtre de netteté (sharpening) à l'image
   img.Image _applySharpen(img.Image image) {
-    // Matrice de convolution pour le sharpening
+    // Implémentation manuelle du sharpening avec noyau 3x3
     // [  0, -1,  0 ]
     // [ -1,  5, -1 ]
     // [  0, -1,  0 ]
-    final kernel = [
-      0.0, -1.0, 0.0,
-      -1.0, 5.0, -1.0,
-      0.0, -1.0, 0.0
-    ];
+    final result = img.Image.from(image);
 
-    return img.convolution(image, kernel: kernel, div: 1, offset: 0);
+    for (int y = 1; y < image.height - 1; y++) {
+      for (int x = 1; x < image.width - 1; x++) {
+        // Récupérer le pixel central et ses voisins
+        final center = image.getPixel(x, y);
+        final top = image.getPixel(x, y - 1);
+        final bottom = image.getPixel(x, y + 1);
+        final left = image.getPixel(x - 1, y);
+        final right = image.getPixel(x + 1, y);
+
+        // Appliquer le noyau de sharpening
+        final centerLum = img.getLuminance(center);
+        final topLum = img.getLuminance(top);
+        final bottomLum = img.getLuminance(bottom);
+        final leftLum = img.getLuminance(left);
+        final rightLum = img.getLuminance(right);
+
+        // Formule: 5*center - top - bottom - left - right
+        final newLum = (5 * centerLum - topLum - bottomLum - leftLum - rightLum).clamp(0, 255).toInt();
+
+        // Appliquer la nouvelle luminance
+        result.setPixel(x, y, img.ColorRgb8(newLum, newLum, newLum));
+      }
+    }
+
+    return result;
   }
 
   /// Applique une dilatation morphologique pour renforcer les segments

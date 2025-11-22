@@ -2,6 +2,7 @@ import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
 import 'package:dr_cardio/utils/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dr_cardio/services/ocr/image_preprocessing_service.dart';
+import 'package:dr_cardio/services/ocr/blood_pressure_ocr_service.dart';
 import 'dart:io';
 
 /// Résultat de l'extraction OCR des valeurs de tension
@@ -33,6 +34,7 @@ class BloodPressureOcrResult {
 /// Service OCR amélioré avec Tesseract + preprocessing pour extraire les valeurs de tension artérielle
 class ImprovedBloodPressureOcrService {
   final ImagePreprocessingService _preprocessingService = ImagePreprocessingService();
+  final BloodPressureOcrService _mlKitFallback = BloodPressureOcrService();
 
   /// Analyse une image et extrait les valeurs de tension avec Tesseract
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
@@ -125,6 +127,18 @@ class ImprovedBloodPressureOcrService {
         } catch (e) {
           debugPrint('⚠️ Impossible de supprimer le fichier temp: $e');
         }
+      }
+
+      // Vérifier la qualité du texte reconnu
+      final isTextCoherent = _isTextCoherent(text);
+      debugPrint('🔍 Vérification cohérence texte: ${isTextCoherent ? "OK" : "MAUVAIS"}');
+
+      if (!isTextCoherent) {
+        debugPrint('');
+        debugPrint('⚠️ Texte Tesseract incohérent (affichage 7-segments?)');
+        debugPrint('🔄 Basculement vers Google ML Kit...');
+        debugPrint('');
+        return await _fallbackToMLKit(imagePath);
       }
 
       // ÉTAPE 5: Parsing des valeurs
@@ -425,9 +439,64 @@ class ImprovedBloodPressureOcrService {
     return value >= 30 && value <= 220;
   }
 
+  /// Vérifie si le texte reconnu est cohérent (contient des chiffres utilisables)
+  /// Retourne false si le texte est du charabia (typique des échecs sur affichages 7-segments)
+  bool _isTextCoherent(String text) {
+    if (text.trim().isEmpty) return false;
+
+    // Compter les caractères numériques vs non-numériques
+    final totalChars = text.replaceAll(RegExp(r'\s'), '').length; // Sans espaces
+    final digitChars = text.replaceAll(RegExp(r'[^0-9]'), '').length;
+
+    debugPrint('📊 Analyse cohérence: $digitChars chiffres / $totalChars caractères total');
+
+    // Si moins de 30% de chiffres, le texte est probablement incohérent
+    if (totalChars == 0) return false;
+    final digitRatio = digitChars / totalChars;
+
+    debugPrint('📊 Ratio chiffres: ${(digitRatio * 100).toStringAsFixed(1)}%');
+
+    // Vérifier aussi s'il y a au moins un nombre de 2-3 chiffres
+    final hasValidNumbers = RegExp(r'\d{2,3}').hasMatch(text);
+
+    return digitRatio >= 0.3 || hasValidNumbers;
+  }
+
+  /// Fallback vers Google ML Kit si Tesseract échoue
+  Future<BloodPressureOcrResult> _fallbackToMLKit(String imagePath) async {
+    try {
+      debugPrint('');
+      debugPrint('╔═══════════════════════════════════════════════════════════╗');
+      debugPrint('║  FALLBACK: Google ML Kit (affichage 7-segments)         ║');
+      debugPrint('╚═══════════════════════════════════════════════════════════╝');
+      debugPrint('');
+      debugPrint('📱 Google ML Kit est optimisé pour les affichages LCD/LED');
+      debugPrint('🔄 Analyse en cours...');
+
+      final result = await _mlKitFallback.extractBloodPressure(imagePath);
+
+      debugPrint('');
+      debugPrint('✅ Google ML Kit - Résultat:');
+      debugPrint('   💉 Systolique: ${result.systolic ?? "non détecté"}');
+      debugPrint('   💉 Diastolique: ${result.diastolic ?? "non détecté"}');
+      debugPrint('   ❤️ Pouls: ${result.pulse ?? "non détecté"}');
+      debugPrint('   📊 Confiance: ${(result.confidence * 100).toStringAsFixed(1)}%');
+      debugPrint('');
+
+      return result;
+    } catch (e) {
+      debugPrint('❌ Erreur Google ML Kit: $e');
+      return BloodPressureOcrResult(
+        rawText: '',
+        error: 'Échec Tesseract ET ML Kit: $e',
+      );
+    }
+  }
+
   /// Libérer les ressources (si nécessaire)
   void dispose() {
     // Tesseract ne nécessite pas de cleanup explicite
+    _mlKitFallback.dispose();
     debugPrint('🔍 OCR Service: Ressources libérées');
   }
 }

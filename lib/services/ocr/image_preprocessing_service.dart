@@ -391,7 +391,7 @@ class ImagePreprocessingService {
 
         // Détecter les zones sombres (écran LCD a fond sombre/gris)
         if (avgLum < 130) { // Seuil pour zones sombres
-          darkRegions.add(Rectangle(x, y, blockSize, blockSize));
+          darkRegions.add(Rectangle(x.toDouble(), y.toDouble(), blockSize.toDouble(), blockSize.toDouble()));
         }
       }
     }

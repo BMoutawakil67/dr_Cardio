@@ -2,6 +2,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:dr_cardio/utils/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dr_cardio/services/ocr/image_preprocessing_service.dart';
+import 'package:dr_cardio/services/ocr/ocr_space_service.dart';
 import 'dart:io';
 
 /// Résultat de l'extraction OCR des valeurs de tension
@@ -34,9 +35,10 @@ class BloodPressureOcrResult {
 class BloodPressureOcrService {
   final TextRecognizer _textRecognizer = TextRecognizer();
   final ImagePreprocessingService _preprocessingService = ImagePreprocessingService();
+  final OcrSpaceService _ocrSpaceService = OcrSpaceService();
 
   /// Analyse une image et extrait les valeurs de tension
-  /// Utilise plusieurs stratégies de preprocessing pour maximiser la détection LCD
+  /// Utilise plusieurs stratégies OCR pour maximiser la détection LCD
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
     try {
       debugPrint('');
@@ -45,13 +47,36 @@ class BloodPressureOcrService {
       debugPrint('═══════════════════════════════════════════════════════════');
       debugPrint('📸 Image source: $imagePath');
 
-      // STRATÉGIE 1: Tentative avec l'image originale
+      // STRATÉGIE 1: OCR.space API (si internet disponible)
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 1/3: Image originale');
+      debugPrint('📋 TENTATIVE 1/4: OCR.space API Cloud');
       debugPrint('─────────────────────────────────────────────────────────');
 
-      var result = await _tryOcrOnImage(imagePath, 'Originale');
+      final ocrSpaceText = await _ocrSpaceService.extractText(imagePath);
+
+      if (ocrSpaceText != null && ocrSpaceText.isNotEmpty) {
+        debugPrint('✅ OCR.space a retourné du texte');
+        final ocrSpaceResult = _parseBloodPressureValues(ocrSpaceText);
+        debugPrint('📊 Résultat OCR.space: $ocrSpaceResult');
+
+        if (ocrSpaceResult.isValid && ocrSpaceResult.confidence >= 0.75) {
+          debugPrint('✅ Détection réussie avec OCR.space !');
+          return ocrSpaceResult;
+        }
+
+        debugPrint('⚠️ OCR.space: Confiance insuffisante (${(ocrSpaceResult.confidence * 100).toStringAsFixed(1)}%)');
+      } else {
+        debugPrint('⚠️ OCR.space indisponible ou aucun texte détecté');
+      }
+
+      // STRATÉGIE 2: Google ML Kit avec image originale
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 TENTATIVE 2/4: Google ML Kit (image originale)');
+      debugPrint('─────────────────────────────────────────────────────────');
+
+      var result = await _tryOcrOnImage(imagePath, 'ML Kit Originale');
 
       if (result.isValid && result.confidence >= 0.85) {
         debugPrint('✅ Détection réussie avec l\'image originale !');
@@ -61,10 +86,10 @@ class BloodPressureOcrService {
       debugPrint('⚠️ Détection insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
       debugPrint('   Passage au preprocessing LCD optimisé...');
 
-      // STRATÉGIE 2: Preprocessing optimisé pour LCD
+      // STRATÉGIE 3: Preprocessing optimisé pour LCD
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 2/3: Preprocessing LCD optimisé');
+      debugPrint('📋 TENTATIVE 3/4: Preprocessing LCD optimisé');
       debugPrint('─────────────────────────────────────────────────────────');
 
       final lcdProcessedPath = await _preprocessingService.preprocessForLcdDisplay(imagePath);
@@ -89,10 +114,10 @@ class BloodPressureOcrService {
       debugPrint('⚠️ Détection encore insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
       debugPrint('   Passage au preprocessing adaptatif...');
 
-      // STRATÉGIE 3: Preprocessing adaptatif (plus agressif)
+      // STRATÉGIE 4: Preprocessing adaptatif (plus agressif)
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 3/3: Preprocessing adaptatif');
+      debugPrint('📋 TENTATIVE 4/4: Preprocessing adaptatif');
       debugPrint('─────────────────────────────────────────────────────────');
 
       final adaptiveProcessedPath = await _preprocessingService.preprocessWithAdaptiveThreshold(imagePath);

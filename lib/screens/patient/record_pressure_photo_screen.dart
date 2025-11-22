@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:dr_cardio/models/medical_note_model.dart';
 import 'package:dr_cardio/repositories/medical_note_repository.dart';
 import 'package:dr_cardio/services/auth_service.dart';
-import 'package:dr_cardio/services/ocr/blood_pressure_ocr_service.dart';
+import 'package:dr_cardio/services/ocr/improved_blood_pressure_ocr_service.dart';
 
 class RecordPressurePhotoScreen extends StatefulWidget {
   const RecordPressurePhotoScreen({super.key});
@@ -24,7 +24,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
 
   // Image picker & OCR
   final ImagePicker _picker = ImagePicker();
-  final BloodPressureOcrService _ocrService = BloodPressureOcrService();
+  final ImprovedBloodPressureOcrService _ocrService = ImprovedBloodPressureOcrService();
   XFile? _capturedImage;
   final MedicalNoteRepository _repository = MedicalNoteRepository();
   BloodPressureOcrResult? _ocrResult;

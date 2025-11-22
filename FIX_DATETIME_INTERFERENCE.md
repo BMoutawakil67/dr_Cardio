@@ -19,9 +19,12 @@ Ces nombres parasites pouvaient être confondus avec les vraies valeurs de tensi
 
 ## Solution implémentée
 
-Ajout d'une fonction `_filterDateTimePatterns()` dans les deux services OCR :
-- `lib/services/ocr/improved_blood_pressure_ocr_service.dart` (Tesseract)
+Ajout d'une fonction `_filterDateTimePatterns()` dans le service OCR :
 - `lib/services/ocr/blood_pressure_ocr_service.dart` (Google ML Kit)
+
+**Note** : Le service Tesseract (`improved_blood_pressure_ocr_service.dart`) a été supprimé
+lors du refactoring car Google ML Kit donne de meilleurs résultats sur les affichages LCD
+des tensiomètres.
 
 ### Patterns filtrés
 
@@ -90,7 +93,6 @@ BloodPressureOcrResult _parseBloodPressureValues(String text) {
 ✅ **Logs détaillés** : Debug print avant/après filtrage pour diagnostic
 ✅ **Sécurité** : Les valeurs de tension comme `120/80` sont préservées
 ✅ **Robustesse** : Gère de nombreux formats de date/heure différents
-✅ **Double protection** : Appliqué aux deux services OCR (Tesseract + ML Kit)
 
 ## Test recommandé
 

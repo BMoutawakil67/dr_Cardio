@@ -1,6 +1,8 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:dr_cardio/utils/logger.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dr_cardio/services/ocr/image_preprocessing_service.dart';
+import 'dart:io';
 
 /// Résultat de l'extraction OCR des valeurs de tension
 class BloodPressureOcrResult {
@@ -31,36 +33,152 @@ class BloodPressureOcrResult {
 /// Service OCR pour extraire les valeurs de tension artérielle depuis une image
 class BloodPressureOcrService {
   final TextRecognizer _textRecognizer = TextRecognizer();
+  final ImagePreprocessingService _preprocessingService = ImagePreprocessingService();
 
   /// Analyse une image et extrait les valeurs de tension
+  /// Utilise plusieurs stratégies de preprocessing pour maximiser la détection LCD
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
     try {
-      debugPrint('🔍 OCR: Analyse de $imagePath');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('🚀 DÉBUT ANALYSE OCR');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('📸 Image source: $imagePath');
 
-      final inputImage = InputImage.fromFilePath(imagePath);
-      debugPrint('🔍 OCR: Image chargée');
+      // STRATÉGIE 1: Tentative avec l'image originale
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 TENTATIVE 1/3: Image originale');
+      debugPrint('─────────────────────────────────────────────────────────');
 
-      final recognizedText = await _textRecognizer.processImage(inputImage);
-      debugPrint('🔍 OCR: Texte reconnu: "${recognizedText.text}"');
+      var result = await _tryOcrOnImage(imagePath, 'Originale');
 
-      logger.i('OCR Raw Text: ${recognizedText.text}');
-
-      if (recognizedText.text.isEmpty) {
-        return BloodPressureOcrResult(
-          rawText: '(aucun texte détecté)',
-          error: 'Aucun texte détecté dans l\'image',
-        );
+      if (result.isValid && result.confidence >= 0.85) {
+        debugPrint('✅ Détection réussie avec l\'image originale !');
+        return result;
       }
 
-      return _parseBloodPressureValues(recognizedText.text);
+      debugPrint('⚠️ Détection insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
+      debugPrint('   Passage au preprocessing LCD optimisé...');
+
+      // STRATÉGIE 2: Preprocessing optimisé pour LCD
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 TENTATIVE 2/3: Preprocessing LCD optimisé');
+      debugPrint('─────────────────────────────────────────────────────────');
+
+      final lcdProcessedPath = await _preprocessingService.preprocessForLcdDisplay(imagePath);
+      final lcdResult = await _tryOcrOnImage(lcdProcessedPath, 'LCD Optimisé');
+
+      // Nettoyer le fichier temporaire
+      if (lcdProcessedPath != imagePath) {
+        _cleanupTempFile(lcdProcessedPath);
+      }
+
+      // Comparer avec le résultat précédent et garder le meilleur
+      if (lcdResult.confidence > result.confidence ||
+          (lcdResult.isValid && !result.isValid)) {
+        result = lcdResult;
+      }
+
+      if (result.isValid && result.confidence >= 0.75) {
+        debugPrint('✅ Détection réussie avec preprocessing LCD !');
+        return result;
+      }
+
+      debugPrint('⚠️ Détection encore insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
+      debugPrint('   Passage au preprocessing adaptatif...');
+
+      // STRATÉGIE 3: Preprocessing adaptatif (plus agressif)
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 TENTATIVE 3/3: Preprocessing adaptatif');
+      debugPrint('─────────────────────────────────────────────────────────');
+
+      final adaptiveProcessedPath = await _preprocessingService.preprocessWithAdaptiveThreshold(imagePath);
+      final adaptiveResult = await _tryOcrOnImage(adaptiveProcessedPath, 'Adaptatif');
+
+      // Nettoyer le fichier temporaire
+      if (adaptiveProcessedPath != imagePath) {
+        _cleanupTempFile(adaptiveProcessedPath);
+      }
+
+      // Garder le meilleur résultat des 3 tentatives
+      if (adaptiveResult.confidence > result.confidence ||
+          (adaptiveResult.isValid && !result.isValid)) {
+        result = adaptiveResult;
+      }
+
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('✅ RÉSULTAT FINAL');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('   💉 Systolique: ${result.systolic ?? "non détecté"} mmHg');
+      debugPrint('   💉 Diastolique: ${result.diastolic ?? "non détecté"} mmHg');
+      debugPrint('   ❤️ Pouls: ${result.pulse ?? "non détecté"} bpm');
+      debugPrint('   📊 Confiance: ${(result.confidence * 100).toStringAsFixed(1)}%');
+      debugPrint('   ✓ Valide: ${result.isValid ? "Oui" : "Non"}');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('');
+
+      return result;
     } catch (e, stackTrace) {
-      debugPrint('❌ OCR Erreur: $e');
-      debugPrint('❌ Stack: $stackTrace');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('❌ ERREUR CRITIQUE OCR');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('Type: ${e.runtimeType}');
+      debugPrint('Message: $e');
+      debugPrint('Stack trace: $stackTrace');
+      debugPrint('═══════════════════════════════════════════════════════════');
+
       logger.e('Erreur OCR: $e');
       return BloodPressureOcrResult(
         rawText: '',
         error: e.toString(),
       );
+    }
+  }
+
+  /// Tente l'OCR sur une image et retourne le résultat
+  Future<BloodPressureOcrResult> _tryOcrOnImage(String imagePath, String strategyName) async {
+    try {
+      debugPrint('🔍 OCR [$strategyName]: Analyse...');
+
+      final inputImage = InputImage.fromFilePath(imagePath);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
+
+      debugPrint('📝 OCR [$strategyName]: Texte brut: "${recognizedText.text}"');
+      logger.i('OCR [$strategyName] Raw Text: ${recognizedText.text}');
+
+      if (recognizedText.text.trim().isEmpty) {
+        debugPrint('⚠️ OCR [$strategyName]: Aucun texte détecté');
+        return BloodPressureOcrResult(
+          rawText: '(aucun texte détecté)',
+          error: 'Aucun texte détecté dans l\'image avec $strategyName',
+        );
+      }
+
+      final result = _parseBloodPressureValues(recognizedText.text);
+      debugPrint('📊 OCR [$strategyName]: Résultat: $result');
+
+      return result;
+    } catch (e) {
+      debugPrint('❌ OCR [$strategyName] Erreur: $e');
+      return BloodPressureOcrResult(
+        rawText: '',
+        error: 'Erreur OCR [$strategyName]: $e',
+      );
+    }
+  }
+
+  /// Nettoie un fichier temporaire
+  void _cleanupTempFile(String filePath) {
+    try {
+      File(filePath).deleteSync();
+      debugPrint('🗑️ Fichier temporaire supprimé: $filePath');
+    } catch (e) {
+      debugPrint('⚠️ Impossible de supprimer le fichier temp: $e');
     }
   }
 

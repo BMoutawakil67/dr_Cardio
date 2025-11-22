@@ -42,6 +42,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/tessdata_config.json
+    - assets/tessdata/
 
 flutter_launcher_icons:
   android: true

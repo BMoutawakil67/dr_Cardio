@@ -15,27 +15,44 @@ L'OCR a été amélioré en remplaçant **Google ML Kit** par **Tesseract OCR** 
 
 ## 🚀 Étapes d'installation
 
-### 1. Installer les dépendances Flutter
+### 1. Télécharger les fichiers de données Tesseract
+
+**IMPORTANT** : Tesseract nécessite un fichier de données (~10MB) pour fonctionner.
+
+#### Option A : Script automatique (Linux/Mac)
+
+```bash
+chmod +x download_tessdata.sh
+./download_tessdata.sh
+```
+
+#### Option B : Téléchargement manuel
+
+```bash
+# Avec wget
+wget -O assets/tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+
+# Ou avec curl
+curl -L -o assets/tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+```
+
+#### Option C : Téléchargement via navigateur
+
+1. Télécharger : https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+2. Placer le fichier dans `assets/tessdata/eng.traineddata`
+
+### 2. Installer les dépendances Flutter
 
 ```bash
 flutter pub get
 ```
 
-### 2. Configuration Android
+### 3. Configuration Android (déjà faite)
 
-Pour **flutter_tesseract_ocr**, vous devez télécharger les fichiers de données Tesseract.
-
-#### Option A : Téléchargement automatique (recommandé)
-
-Le package téléchargera automatiquement les données au premier lancement de l'OCR.
-
-#### Option B : Téléchargement manuel
-
-1. Télécharger le fichier de données anglais : https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
-
-2. Placer le fichier dans :
-   - **Android**: `android/app/src/main/assets/tessdata/eng.traineddata`
-   - **iOS**: Ajouter à `ios/Runner/` via Xcode
+Les fichiers de configuration sont déjà en place :
+- ✅ `assets/tessdata_config.json` - Configuration Tesseract
+- ✅ `assets/tessdata/` - Répertoire pour les fichiers .traineddata
+- ✅ `pubspec.yaml` - Assets déclarés
 
 ### 3. Configuration iOS
 
@@ -140,9 +157,28 @@ debugPrint('🔍 OCR: ...');
 
 ## 🐛 Résolution de problèmes
 
-### Erreur : "Tesseract data not found"
+### Erreur : "Unable to load asset: assets/tessdata_config.json"
 
-**Solution** : Télécharger manuellement `eng.traineddata` (voir étape 2).
+**Cause** : Le fichier de configuration n'est pas trouvé dans les assets.
+
+**Solutions** :
+1. Vérifier que `assets/tessdata_config.json` existe
+2. Exécuter `flutter pub get` pour recharger les assets
+3. Relancer l'application avec `flutter run`
+
+### Erreur : "Tesseract data not found" ou fichier .traineddata manquant
+
+**Cause** : Le fichier `eng.traineddata` n'est pas dans `assets/tessdata/`.
+
+**Solution** : Télécharger le fichier (voir étape 1 de l'installation) :
+
+```bash
+# Linux/Mac
+./download_tessdata.sh
+
+# Ou manuellement
+wget -O assets/tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+```
 
 ### OCR ne détecte rien
 

@@ -215,6 +215,40 @@ class BloodPressureOcrService {
     }
   }
 
+  /// Valide que les valeurs de tension sont médicalement plausibles
+  bool _isValidBloodPressure(int? systolic, int? diastolic) {
+    if (systolic == null || diastolic == null) return false;
+
+    // Vérifier les plages médicales normales
+    // Systolique: 70-200 mmHg (on accepte large pour couvrir hypo et hypertension)
+    if (systolic < 70 || systolic > 200) {
+      debugPrint('⚠️ Validation: Systolique $systolic hors plage [70-200]');
+      return false;
+    }
+
+    // Diastolique: 40-130 mmHg
+    if (diastolic < 40 || diastolic > 130) {
+      debugPrint('⚠️ Validation: Diastolique $diastolic hors plage [40-130]');
+      return false;
+    }
+
+    // Le systolique doit être > diastolique
+    if (systolic <= diastolic) {
+      debugPrint('⚠️ Validation: Systolique ($systolic) <= Diastolique ($diastolic)');
+      return false;
+    }
+
+    // Pression pulsée (différence) devrait être raisonnable (minimum 20, maximum 100)
+    final pulsePressure = systolic - diastolic;
+    if (pulsePressure < 20 || pulsePressure > 100) {
+      debugPrint('⚠️ Validation: Pression pulsée $pulsePressure hors plage [20-100]');
+      return false;
+    }
+
+    debugPrint('✅ Validation: $systolic/$diastolic est médicalement valide');
+    return true;
+  }
+
   /// Parse le texte reconnu pour extraire les valeurs de tension
   BloodPressureOcrResult _parseBloodPressureValues(String text) {
     // Nettoyer le texte
@@ -267,13 +301,20 @@ class BloodPressureOcrService {
     }
 
     if (sysMatch != null && diaMatch != null) {
-      systolic = int.parse(sysMatch.group(1)!);
-      diastolic = int.parse(diaMatch.group(1)!);
-      if (pulMatch != null) {
-        pulse = int.parse(pulMatch.group(1)!);
+      final tempSys = int.parse(sysMatch.group(1)!);
+      final tempDia = int.parse(diaMatch.group(1)!);
+
+      if (_isValidBloodPressure(tempSys, tempDia)) {
+        systolic = tempSys;
+        diastolic = tempDia;
+        if (pulMatch != null) {
+          pulse = int.parse(pulMatch.group(1)!);
+        }
+        confidence = 0.95;
+        debugPrint('✅ Pattern avec labels détecté: SYS=$systolic DIA=$diastolic PUL=$pulse');
+      } else {
+        debugPrint('⚠️ Pattern avec labels invalide médicalement: SYS=$tempSys DIA=$tempDia');
       }
-      confidence = 0.95;
-      debugPrint('✅ Pattern avec labels détecté: SYS=$systolic DIA=$diastolic PUL=$pulse');
     }
 
     // Stratégie 2: Chercher un pattern "XXX/YY" ou "XXX/YY/ZZ"
@@ -281,13 +322,20 @@ class BloodPressureOcrService {
       final slashPattern = RegExp(r'(\d{2,3})\s*[/\\]\s*(\d{2,3})(?:\s*[/\\]\s*(\d{2,3}))?');
       final slashMatch = slashPattern.firstMatch(cleanText);
       if (slashMatch != null) {
-        systolic = int.parse(slashMatch.group(1)!);
-        diastolic = int.parse(slashMatch.group(2)!);
-        if (slashMatch.group(3) != null) {
-          pulse = int.parse(slashMatch.group(3)!);
+        final tempSys = int.parse(slashMatch.group(1)!);
+        final tempDia = int.parse(slashMatch.group(2)!);
+
+        if (_isValidBloodPressure(tempSys, tempDia)) {
+          systolic = tempSys;
+          diastolic = tempDia;
+          if (slashMatch.group(3) != null) {
+            pulse = int.parse(slashMatch.group(3)!);
+          }
+          confidence = 0.9;
+          debugPrint('✅ Pattern "/" détecté: $systolic/$diastolic/$pulse');
+        } else {
+          debugPrint('⚠️ Pattern "/" invalide médicalement: $tempSys/$tempDia');
         }
-        confidence = 0.9;
-        debugPrint('✅ Pattern "/" détecté: $systolic/$diastolic/$pulse');
       }
     }
 
@@ -327,8 +375,14 @@ class BloodPressureOcrService {
       }
 
       if (systolic != null && diastolic != null) {
-        confidence = 0.75;
-        debugPrint('✅ Regex spécifiques: sys=$systolic, dia=$diastolic, pulse=$pulse');
+        if (_isValidBloodPressure(systolic, diastolic)) {
+          confidence = 0.75;
+          debugPrint('✅ Regex spécifiques: sys=$systolic, dia=$diastolic, pulse=$pulse');
+        } else {
+          debugPrint('⚠️ Regex spécifiques invalide médicalement: sys=$systolic, dia=$diastolic');
+          systolic = null;
+          diastolic = null;
+        }
       }
     }
 
@@ -337,15 +391,22 @@ class BloodPressureOcrService {
       // Trier par ordre décroissant
       final sorted = List<int>.from(numbers)..sort((a, b) => b.compareTo(a));
 
-      systolic = sorted[0]; // Le plus grand
-      diastolic = sorted[1]; // Le deuxième plus grand
+      final tempSys = sorted[0]; // Le plus grand
+      final tempDia = sorted[1]; // Le deuxième plus grand
 
-      if (numbers.length >= 3) {
-        pulse = sorted[2];
+      if (_isValidBloodPressure(tempSys, tempDia)) {
+        systolic = tempSys;
+        diastolic = tempDia;
+
+        if (numbers.length >= 3) {
+          pulse = sorted[2];
+        }
+
+        confidence = 0.6;
+        debugPrint('✅ Fallback - tri par magnitude: sys=$systolic, dia=$diastolic, pulse=$pulse');
+      } else {
+        debugPrint('⚠️ Fallback invalide médicalement: sys=$tempSys, dia=$tempDia - REJETÉ');
       }
-
-      confidence = 0.6;
-      debugPrint('✅ Fallback - tri par magnitude: sys=$systolic, dia=$diastolic, pulse=$pulse');
     }
 
     return BloodPressureOcrResult(
@@ -367,7 +428,7 @@ class BloodPressureOcrService {
   }
 
   /// Filtre et supprime les patterns de date/heure qui peuvent interférer avec la détection
-  /// Exemples: "8:30", "08:30 AM", "10.08", "10/08/2024", etc.
+  /// Exemples: "8:30", "08:30 AM", "10.08", "10/08/2024", "30"" (secondes), etc.
   String _filterDateTimePatterns(String text) {
     debugPrint('🔍 Texte avant filtrage date/heure: "$text"');
 
@@ -383,15 +444,21 @@ class BloodPressureOcrService {
     // Pattern 3: Heures avec 'h' (8h30, 12h45, etc.)
     filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}h\d{2}\b', caseSensitive: false), ' ');
 
-    // Pattern 4: Dates avec points (10.08, 10.08., 10.08.2024, etc.)
+    // Pattern 4: Durée en secondes (30", 45", etc.)
+    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}"'), ' ');
+
+    // Pattern 5: Nombres isolés suivis de point (08., 10., etc.) - souvent des dates
+    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}\.(?!\d)'), ' ');
+
+    // Pattern 6: Dates avec points (10.08, 10.08., 10.08.2024, etc.)
     filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?\b'), ' ');
 
-    // Pattern 5: Dates avec slashes (10/08, 10/08/24, 10/08/2024, etc.)
+    // Pattern 7: Dates avec slashes (10/08, 10/08/24, 10/08/2024, etc.)
     // ATTENTION: On doit éviter de supprimer les patterns de tension comme 120/80
     // On vérifie que les nombres sont petits (<= 31 pour jours/mois)
     filtered = filtered.replaceAll(RegExp(r'\b([0-2]?\d|3[01])/([0-1]?\d|1[0-2])(?:/\d{2,4})?\b'), ' ');
 
-    // Pattern 6: Dates avec tirets (10-08, 10-08-24, etc.)
+    // Pattern 8: Dates avec tirets (10-08, 10-08-24, etc.)
     filtered = filtered.replaceAll(RegExp(r'\b([0-2]?\d|3[01])-([0-1]?\d|1[0-2])(?:-\d{2,4})?\b'), ' ');
 
     // Nettoyer les espaces multiples créés par les remplacements

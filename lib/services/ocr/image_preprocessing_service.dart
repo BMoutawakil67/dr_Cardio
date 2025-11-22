@@ -132,13 +132,27 @@ class ImagePreprocessingService {
 
       debugPrint('✅ Image chargée: ${image.width}x${image.height}');
 
-      // 1. Niveaux de gris
+      // 1. Agrandir l'image (upscale 2x) pour améliorer la détection des petits chiffres LCD
+      debugPrint('🔄 Agrandissement 2x de l\'image...');
+      image = img.copyResize(image,
+        width: image.width * 2,
+        height: image.height * 2,
+        interpolation: img.Interpolation.cubic // Interpolation de qualité
+      );
+
+      // 2. Niveaux de gris
+      debugPrint('🔄 Conversion en niveaux de gris...');
       image = img.grayscale(image);
 
-      // 2. Augmentation agressive du contraste et luminosité pour LCD
+      // 3. Netteté (sharpening) pour renforcer les bords des segments LCD
+      debugPrint('🔄 Augmentation de la netteté...');
+      image = _applySharpen(image);
+
+      // 4. Augmentation agressive du contraste et luminosité pour LCD
+      debugPrint('🔄 Ajustement contraste/luminosité...');
       image = img.adjustColor(image,
-        contrast: 1.4,    // Augmente le contraste de 40%
-        brightness: 1.15, // Augmente la luminosité de 15%
+        contrast: 1.6,    // Augmente le contraste de 60%
+        brightness: 1.2,  // Augmente la luminosité de 20%
         saturation: 0     // Désaturation complète
       );
 
@@ -151,8 +165,13 @@ class ImagePreprocessingService {
         image = img.invert(image);
       }
 
-      // 6. Binarisation optimisée pour LCD
-      image = _applyThreshold(image, threshold: 100);
+      // 6. Binarisation optimisée pour LCD (seuil plus strict)
+      debugPrint('🔄 Binarisation...');
+      image = _applyThreshold(image, threshold: 110);
+
+      // 7. Morphologie: Dilate pour renforcer les segments (optionnel)
+      debugPrint('🔄 Renforcement des segments LCD...');
+      image = _applyDilate(image, iterations: 1);
 
       // Sauvegarde
       final tempDir = await getTemporaryDirectory();
@@ -165,6 +184,54 @@ class ImagePreprocessingService {
       debugPrint('❌ Erreur preprocessing LCD: $e');
       return imagePath;
     }
+  }
+
+  /// Applique un filtre de netteté (sharpening) à l'image
+  img.Image _applySharpen(img.Image image) {
+    // Matrice de convolution pour le sharpening
+    // [  0, -1,  0 ]
+    // [ -1,  5, -1 ]
+    // [  0, -1,  0 ]
+    final kernel = [
+      0.0, -1.0, 0.0,
+      -1.0, 5.0, -1.0,
+      0.0, -1.0, 0.0
+    ];
+
+    return img.convolution(image, kernel: kernel, div: 1, offset: 0);
+  }
+
+  /// Applique une dilatation morphologique pour renforcer les segments
+  img.Image _applyDilate(img.Image image, {int iterations = 1}) {
+    for (int i = 0; i < iterations; i++) {
+      final result = img.Image.from(image);
+
+      for (int y = 1; y < image.height - 1; y++) {
+        for (int x = 1; x < image.width - 1; x++) {
+          // Vérifier les 8 voisins
+          bool hasWhiteNeighbor = false;
+
+          for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+              final pixel = image.getPixel(x + dx, y + dy);
+              if (img.getLuminance(pixel) > 128) {
+                hasWhiteNeighbor = true;
+                break;
+              }
+            }
+            if (hasWhiteNeighbor) break;
+          }
+
+          if (hasWhiteNeighbor) {
+            result.setPixel(x, y, img.ColorRgb8(255, 255, 255));
+          }
+        }
+      }
+
+      image = result;
+    }
+
+    return image;
   }
 
   /// Calcule la luminance moyenne de l'image

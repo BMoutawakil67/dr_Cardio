@@ -37,56 +37,138 @@ class ImprovedBloodPressureOcrService {
   /// Analyse une image et extrait les valeurs de tension avec Tesseract
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
     try {
-      debugPrint('🔍 OCR Amélioré: Analyse de $imagePath');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('🚀 DÉBUT ANALYSE OCR TESSERACT');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('📸 Image source: $imagePath');
 
-      // Vérifier que l'image existe
-      if (!await File(imagePath).exists()) {
+      // ÉTAPE 1: Vérification de l'image source
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 1/5: Vérification de l\'image source');
+      debugPrint('─────────────────────────────────────────────────────────');
+
+      final imageFile = File(imagePath);
+      if (!await imageFile.exists()) {
+        debugPrint('❌ ÉCHEC: Image introuvable à $imagePath');
         throw Exception('Image introuvable: $imagePath');
       }
 
-      // Étape 1: Preprocessing de l'image
-      debugPrint('🔍 OCR: Preprocessing de l\'image...');
+      final imageSize = await imageFile.length();
+      debugPrint('✅ Image trouvée');
+      debugPrint('   📦 Taille: ${(imageSize / 1024).toStringAsFixed(2)} KB');
+      debugPrint('   📁 Chemin: $imagePath');
+
+      // ÉTAPE 2: Preprocessing de l'image
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 2/5: Preprocessing de l\'image');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('🔄 Lancement du preprocessing...');
+      debugPrint('   • Conversion en niveaux de gris');
+      debugPrint('   • Augmentation du contraste');
+      debugPrint('   • Sharpening (netteté)');
+      debugPrint('   • Binarisation (noir/blanc)');
+
       final processedImagePath = await _preprocessingService.preprocessForOcr(imagePath);
 
-      // Étape 2: OCR avec Tesseract
-      debugPrint('🔍 OCR: Analyse Tesseract en cours...');
+      debugPrint('✅ Preprocessing terminé');
+      debugPrint('   📁 Image prétraitée: $processedImagePath');
 
-      // Configurer Tesseract pour reconnaître uniquement les chiffres
-      // PSM 7 = Traiter l'image comme une seule ligne de texte
-      // PSM 6 = Assumer un bloc uniforme de texte
+      // ÉTAPE 3: Configuration Tesseract
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 3/5: Configuration Tesseract OCR');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('⚙️ Configuration:');
+      debugPrint('   • Langue: eng');
+      debugPrint('   • PSM Mode: 6 (bloc uniforme)');
+      debugPrint('   • Whitelist: 0123456789/: + SYS/DIA/PUL');
+      debugPrint('   • Preserve spaces: Oui');
+      debugPrint('   • Formats supportés: XXX/YY, XXX SYS, SYS XXX');
+
+      // ÉTAPE 4: Analyse OCR avec Tesseract
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 4/5: Analyse OCR Tesseract');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('🔍 Lancement de l\'analyse Tesseract...');
+      debugPrint('⏳ Ceci peut prendre 1-3 secondes...');
+
+      final startTime = DateTime.now();
+
       String text = await FlutterTesseractOcr.extractText(
         processedImagePath,
         language: 'eng',
         args: {
           "psm": "6", // Page segmentation mode: bloc uniforme
           "preserve_interword_spaces": "1",
-          "tessedit_char_whitelist": "0123456789/: ", // Uniquement chiffres et séparateurs
+          "tessedit_char_whitelist": "0123456789/: SYSDIAPULsysdiapu", // Chiffres + labels SYS/DIA/PUL
         },
       );
 
-      debugPrint('🔍 OCR Tesseract: Texte reconnu: "$text"');
-      logger.i('OCR Tesseract Raw Text: $text');
+      final duration = DateTime.now().difference(startTime);
+
+      debugPrint('✅ Analyse Tesseract terminée');
+      debugPrint('   ⏱️ Durée: ${duration.inMilliseconds}ms');
+      debugPrint('   📝 Texte brut reconnu: "${text.isEmpty ? '(vide)' : text}"');
+      debugPrint('   📏 Longueur: ${text.length} caractères');
+
+      logger.i('OCR Tesseract Raw Text: $text (${duration.inMilliseconds}ms)');
 
       // Nettoyer le fichier temporaire si c'est une image prétraitée
       if (processedImagePath != imagePath) {
         try {
           await File(processedImagePath).delete();
+          debugPrint('🗑️ Fichier temporaire supprimé: $processedImagePath');
         } catch (e) {
           debugPrint('⚠️ Impossible de supprimer le fichier temp: $e');
         }
       }
 
+      // ÉTAPE 5: Parsing des valeurs
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 5/5: Parsing des valeurs de tension');
+      debugPrint('─────────────────────────────────────────────────────────');
+
       if (text.trim().isEmpty) {
-        // Essayer avec preprocessing adaptatif
-        debugPrint('🔍 OCR: Tentative avec preprocessing adaptatif...');
+        debugPrint('⚠️ Aucun texte détecté - tentative avec preprocessing adaptatif...');
         return await _extractWithAdaptivePreprocessing(imagePath);
       }
 
-      return _parseBloodPressureValues(text);
+      debugPrint('🔍 Extraction des nombres et patterns...');
+      final result = _parseBloodPressureValues(text);
+
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('✅ RÉSULTAT FINAL');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('   💉 Systolique: ${result.systolic ?? "non détecté"} mmHg');
+      debugPrint('   💉 Diastolique: ${result.diastolic ?? "non détecté"} mmHg');
+      debugPrint('   ❤️ Pouls: ${result.pulse ?? "non détecté"} bpm');
+      debugPrint('   📊 Confiance: ${(result.confidence * 100).toStringAsFixed(1)}%');
+      debugPrint('   ✓ Valide: ${result.isValid ? "Oui" : "Non"}');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('');
+
+      return result;
     } catch (e, stackTrace) {
-      debugPrint('❌ OCR Erreur: $e');
-      debugPrint('❌ Stack: $stackTrace');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('❌ ERREUR CRITIQUE OCR');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('Type: ${e.runtimeType}');
+      debugPrint('Message: $e');
+      debugPrint('');
+      debugPrint('Stack trace:');
+      debugPrint('$stackTrace');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('');
+
       logger.e('Erreur OCR Tesseract: $e');
+
       return BloodPressureOcrResult(
         rawText: '',
         error: e.toString(),
@@ -105,7 +187,7 @@ class ImprovedBloodPressureOcrService {
         language: 'eng',
         args: {
           "psm": "7", // Ligne unique
-          "tessedit_char_whitelist": "0123456789/: ",
+          "tessedit_char_whitelist": "0123456789/: SYSDIAPULsysdiapu",
         },
       );
 
@@ -154,6 +236,70 @@ class ImprovedBloodPressureOcrService {
     int? diastolic;
     int? pulse;
     double confidence = 0.5;
+
+    // STRATÉGIE PRIORITAIRE: Chercher les labels SYS/DIA/PUL avec les valeurs
+    // Format 1: "120 SYS" "80 DIA" "70 PUL"
+    // Format 2: "SYS 120" "DIA 80" "PUL 70"
+    debugPrint('🔍 Recherche des labels SYS/DIA/PUL...');
+
+    // Pattern pour "120 SYS" ou "SYS 120" (case insensitive)
+    final sysPattern = RegExp(r'(?:(\d{2,3})\s*(?:SYS|sys|Sys))|(?:(?:SYS|sys|Sys)\s*(\d{2,3}))', caseSensitive: false);
+    final sysMatch = sysPattern.firstMatch(cleanText);
+
+    if (sysMatch != null) {
+      final sysValue = sysMatch.group(1) ?? sysMatch.group(2);
+      if (sysValue != null) {
+        final val = int.parse(sysValue);
+        if (_isValidSystolic(val)) {
+          systolic = val;
+          confidence = 0.98; // Très haute confiance avec label
+          debugPrint('✅ Systolique trouvée avec label SYS: $systolic mmHg (98%)');
+        }
+      }
+    }
+
+    // Pattern pour "80 DIA" ou "DIA 80"
+    final diaPattern = RegExp(r'(?:(\d{2,3})\s*(?:DIA|dia|Dia))|(?:(?:DIA|dia|Dia)\s*(\d{2,3}))', caseSensitive: false);
+    final diaMatch = diaPattern.firstMatch(cleanText);
+
+    if (diaMatch != null) {
+      final diaValue = diaMatch.group(1) ?? diaMatch.group(2);
+      if (diaValue != null) {
+        final val = int.parse(diaValue);
+        if (_isValidDiastolic(val)) {
+          diastolic = val;
+          if (systolic != null) confidence = 0.98; // Très haute confiance avec les deux labels
+          debugPrint('✅ Diastolique trouvée avec label DIA: $diastolic mmHg (98%)');
+        }
+      }
+    }
+
+    // Pattern pour "70 PUL" ou "PUL 70" (aussi BPM, HR)
+    final pulPattern = RegExp(r'(?:(\d{2,3})\s*(?:PUL|pul|Pul|BPM|bpm|HR|hr))|(?:(?:PUL|pul|Pul|BPM|bpm|HR|hr)\s*(\d{2,3}))', caseSensitive: false);
+    final pulMatch = pulPattern.firstMatch(cleanText);
+
+    if (pulMatch != null) {
+      final pulValue = pulMatch.group(1) ?? pulMatch.group(2);
+      if (pulValue != null) {
+        final val = int.parse(pulValue);
+        if (_isValidPulse(val)) {
+          pulse = val;
+          debugPrint('✅ Pouls trouvé avec label PUL: $pulse bpm');
+        }
+      }
+    }
+
+    // Si on a trouvé SYS et DIA avec les labels, on peut retourner directement
+    if (systolic != null && diastolic != null) {
+      debugPrint('🎯 Détection réussie avec labels SYS/DIA (confiance: ${(confidence * 100).toStringAsFixed(1)}%)');
+      return BloodPressureOcrResult(
+        systolic: systolic,
+        diastolic: diastolic,
+        pulse: pulse,
+        confidence: confidence,
+        rawText: cleanText,
+      );
+    }
 
     // Stratégie 1: Chercher un pattern "SYS/DIA" ou "XXX/YY" ou "XXX YY"
     // Format typique: "120/80" ou "120 80" ou "120 / 80"

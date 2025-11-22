@@ -53,21 +53,29 @@ class BloodPressureOcrService {
       debugPrint('📋 TENTATIVE 1/4: OCR.space API Cloud');
       debugPrint('─────────────────────────────────────────────────────────');
 
-      final ocrSpaceText = await _ocrSpaceService.extractText(imagePath);
+      try {
+        debugPrint('🔍 Appel OCR.space en cours...');
+        final ocrSpaceText = await _ocrSpaceService.extractText(imagePath);
+        debugPrint('🔍 OCR.space retourné: ${ocrSpaceText ?? "(null)"}');
 
-      if (ocrSpaceText != null && ocrSpaceText.isNotEmpty) {
-        debugPrint('✅ OCR.space a retourné du texte');
-        final ocrSpaceResult = _parseBloodPressureValues(ocrSpaceText);
-        debugPrint('📊 Résultat OCR.space: $ocrSpaceResult');
+        if (ocrSpaceText != null && ocrSpaceText.isNotEmpty) {
+          debugPrint('✅ OCR.space a retourné du texte');
+          final ocrSpaceResult = _parseBloodPressureValues(ocrSpaceText);
+          debugPrint('📊 Résultat OCR.space: $ocrSpaceResult');
 
-        if (ocrSpaceResult.isValid && ocrSpaceResult.confidence >= 0.75) {
-          debugPrint('✅ Détection réussie avec OCR.space !');
-          return ocrSpaceResult;
+          if (ocrSpaceResult.isValid && ocrSpaceResult.confidence >= 0.75) {
+            debugPrint('✅ Détection réussie avec OCR.space !');
+            return ocrSpaceResult;
+          }
+
+          debugPrint('⚠️ OCR.space: Confiance insuffisante (${(ocrSpaceResult.confidence * 100).toStringAsFixed(1)}%)');
+        } else {
+          debugPrint('⚠️ OCR.space indisponible ou aucun texte détecté');
         }
-
-        debugPrint('⚠️ OCR.space: Confiance insuffisante (${(ocrSpaceResult.confidence * 100).toStringAsFixed(1)}%)');
-      } else {
-        debugPrint('⚠️ OCR.space indisponible ou aucun texte détecté');
+      } catch (e, stackTrace) {
+        debugPrint('❌ ERREUR OCR.space: $e');
+        debugPrint('Stack: $stackTrace');
+        logger.e('OCR.space error: $e');
       }
 
       // STRATÉGIE 2: Google ML Kit avec image originale

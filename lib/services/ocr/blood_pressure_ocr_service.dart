@@ -50,7 +50,7 @@ class BloodPressureOcrService {
       // STRATÉGIE 1: OCR.space API (si internet disponible)
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 1/4: OCR.space API Cloud');
+      debugPrint('📋 TENTATIVE 1/5: OCR.space API Cloud');
       debugPrint('─────────────────────────────────────────────────────────');
 
       try {
@@ -81,7 +81,7 @@ class BloodPressureOcrService {
       // STRATÉGIE 2: Google ML Kit avec image originale
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 2/4: Google ML Kit (image originale)');
+      debugPrint('📋 TENTATIVE 2/5: Google ML Kit (image originale)');
       debugPrint('─────────────────────────────────────────────────────────');
 
       var result = await _tryOcrOnImage(imagePath, 'ML Kit Originale');
@@ -97,7 +97,7 @@ class BloodPressureOcrService {
       // STRATÉGIE 3: Preprocessing optimisé pour LCD
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 3/4: Preprocessing LCD optimisé');
+      debugPrint('📋 TENTATIVE 3/5: Preprocessing LCD optimisé');
       debugPrint('─────────────────────────────────────────────────────────');
 
       final lcdProcessedPath = await _preprocessingService.preprocessForLcdDisplay(imagePath);
@@ -125,7 +125,7 @@ class BloodPressureOcrService {
       // STRATÉGIE 4: Preprocessing adaptatif (plus agressif)
       debugPrint('');
       debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 4/4: Preprocessing adaptatif');
+      debugPrint('📋 TENTATIVE 4/5: Preprocessing adaptatif');
       debugPrint('─────────────────────────────────────────────────────────');
 
       final adaptiveProcessedPath = await _preprocessingService.preprocessWithAdaptiveThreshold(imagePath);
@@ -136,10 +136,38 @@ class BloodPressureOcrService {
         _cleanupTempFile(adaptiveProcessedPath);
       }
 
-      // Garder le meilleur résultat des 3 tentatives
+      // Garder le meilleur résultat
       if (adaptiveResult.confidence > result.confidence ||
           (adaptiveResult.isValid && !result.isValid)) {
         result = adaptiveResult;
+      }
+
+      if (result.isValid && result.confidence >= 0.75) {
+        debugPrint('✅ Détection réussie avec preprocessing adaptatif !');
+        return result;
+      }
+
+      debugPrint('⚠️ Détection encore insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
+      debugPrint('   Passage à l\'isolation LCD...');
+
+      // STRATÉGIE 5: Isolation de la zone LCD (dernière tentative)
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 TENTATIVE 5/5: Isolation zone LCD');
+      debugPrint('─────────────────────────────────────────────────────────');
+
+      final lcdIsolatedPath = await _preprocessingService.preprocessWithLcdIsolation(imagePath);
+      final lcdIsolatedResult = await _tryOcrOnImage(lcdIsolatedPath, 'LCD Isolé');
+
+      // Nettoyer le fichier temporaire
+      if (lcdIsolatedPath != imagePath) {
+        _cleanupTempFile(lcdIsolatedPath);
+      }
+
+      // Garder le meilleur résultat final
+      if (lcdIsolatedResult.confidence > result.confidence ||
+          (lcdIsolatedResult.isValid && !result.isValid)) {
+        result = lcdIsolatedResult;
       }
 
       debugPrint('');

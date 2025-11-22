@@ -84,8 +84,9 @@ class ImprovedBloodPressureOcrService {
       debugPrint('⚙️ Configuration:');
       debugPrint('   • Langue: eng');
       debugPrint('   • PSM Mode: 6 (bloc uniforme)');
-      debugPrint('   • Whitelist: 0123456789/: ');
+      debugPrint('   • Whitelist: 0123456789/: + SYS/DIA/PUL');
       debugPrint('   • Preserve spaces: Oui');
+      debugPrint('   • Formats supportés: XXX/YY, XXX SYS, SYS XXX');
 
       // ÉTAPE 4: Analyse OCR avec Tesseract
       debugPrint('');
@@ -103,7 +104,7 @@ class ImprovedBloodPressureOcrService {
         args: {
           "psm": "6", // Page segmentation mode: bloc uniforme
           "preserve_interword_spaces": "1",
-          "tessedit_char_whitelist": "0123456789/: ", // Uniquement chiffres et séparateurs
+          "tessedit_char_whitelist": "0123456789/: SYSDIAPULsysdiapu", // Chiffres + labels SYS/DIA/PUL
         },
       );
 
@@ -186,7 +187,7 @@ class ImprovedBloodPressureOcrService {
         language: 'eng',
         args: {
           "psm": "7", // Ligne unique
-          "tessedit_char_whitelist": "0123456789/: ",
+          "tessedit_char_whitelist": "0123456789/: SYSDIAPULsysdiapu",
         },
       );
 
@@ -235,6 +236,70 @@ class ImprovedBloodPressureOcrService {
     int? diastolic;
     int? pulse;
     double confidence = 0.5;
+
+    // STRATÉGIE PRIORITAIRE: Chercher les labels SYS/DIA/PUL avec les valeurs
+    // Format 1: "120 SYS" "80 DIA" "70 PUL"
+    // Format 2: "SYS 120" "DIA 80" "PUL 70"
+    debugPrint('🔍 Recherche des labels SYS/DIA/PUL...');
+
+    // Pattern pour "120 SYS" ou "SYS 120" (case insensitive)
+    final sysPattern = RegExp(r'(?:(\d{2,3})\s*(?:SYS|sys|Sys))|(?:(?:SYS|sys|Sys)\s*(\d{2,3}))', caseSensitive: false);
+    final sysMatch = sysPattern.firstMatch(cleanText);
+
+    if (sysMatch != null) {
+      final sysValue = sysMatch.group(1) ?? sysMatch.group(2);
+      if (sysValue != null) {
+        final val = int.parse(sysValue);
+        if (_isValidSystolic(val)) {
+          systolic = val;
+          confidence = 0.98; // Très haute confiance avec label
+          debugPrint('✅ Systolique trouvée avec label SYS: $systolic mmHg (98%)');
+        }
+      }
+    }
+
+    // Pattern pour "80 DIA" ou "DIA 80"
+    final diaPattern = RegExp(r'(?:(\d{2,3})\s*(?:DIA|dia|Dia))|(?:(?:DIA|dia|Dia)\s*(\d{2,3}))', caseSensitive: false);
+    final diaMatch = diaPattern.firstMatch(cleanText);
+
+    if (diaMatch != null) {
+      final diaValue = diaMatch.group(1) ?? diaMatch.group(2);
+      if (diaValue != null) {
+        final val = int.parse(diaValue);
+        if (_isValidDiastolic(val)) {
+          diastolic = val;
+          if (systolic != null) confidence = 0.98; // Très haute confiance avec les deux labels
+          debugPrint('✅ Diastolique trouvée avec label DIA: $diastolic mmHg (98%)');
+        }
+      }
+    }
+
+    // Pattern pour "70 PUL" ou "PUL 70" (aussi BPM, HR)
+    final pulPattern = RegExp(r'(?:(\d{2,3})\s*(?:PUL|pul|Pul|BPM|bpm|HR|hr))|(?:(?:PUL|pul|Pul|BPM|bpm|HR|hr)\s*(\d{2,3}))', caseSensitive: false);
+    final pulMatch = pulPattern.firstMatch(cleanText);
+
+    if (pulMatch != null) {
+      final pulValue = pulMatch.group(1) ?? pulMatch.group(2);
+      if (pulValue != null) {
+        final val = int.parse(pulValue);
+        if (_isValidPulse(val)) {
+          pulse = val;
+          debugPrint('✅ Pouls trouvé avec label PUL: $pulse bpm');
+        }
+      }
+    }
+
+    // Si on a trouvé SYS et DIA avec les labels, on peut retourner directement
+    if (systolic != null && diastolic != null) {
+      debugPrint('🎯 Détection réussie avec labels SYS/DIA (confiance: ${(confidence * 100).toStringAsFixed(1)}%)');
+      return BloodPressureOcrResult(
+        systolic: systolic,
+        diastolic: diastolic,
+        pulse: pulse,
+        confidence: confidence,
+        rawText: cleanText,
+      );
+    }
 
     // Stratégie 1: Chercher un pattern "SYS/DIA" ou "XXX/YY" ou "XXX YY"
     // Format typique: "120/80" ou "120 80" ou "120 / 80"

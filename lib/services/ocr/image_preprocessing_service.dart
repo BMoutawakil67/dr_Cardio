@@ -132,13 +132,30 @@ class ImagePreprocessingService {
 
       debugPrint('✅ Image chargée: ${image.width}x${image.height}');
 
-      // 1. Agrandir l'image (upscale 2x) pour améliorer la détection des petits chiffres LCD
-      debugPrint('🔄 Agrandissement 2x de l\'image...');
-      image = img.copyResize(image,
-        width: image.width * 2,
-        height: image.height * 2,
-        interpolation: img.Interpolation.cubic // Interpolation de qualité
-      );
+      // 1. Redimensionner intelligemment l'image pour optimiser OCR et mémoire
+      final maxDimension = image.width > image.height ? image.width : image.height;
+      final minDimension = image.width < image.height ? image.width : image.height;
+
+      if (maxDimension < 800) {
+        // Image petite : upscaler 2x pour améliorer la détection
+        debugPrint('🔄 Image petite ($maxDimension px) - Agrandissement 2x...');
+        image = img.copyResize(image,
+          width: image.width * 2,
+          height: image.height * 2,
+          interpolation: img.Interpolation.cubic
+        );
+      } else if (maxDimension > 1600) {
+        // Image trop grande : réduire pour économiser la mémoire
+        final scale = 1600 / maxDimension;
+        debugPrint('🔄 Image grande ($maxDimension px) - Réduction à 1600px (${(scale * 100).toStringAsFixed(0)}%)...');
+        image = img.copyResize(image,
+          width: (image.width * scale).toInt(),
+          height: (image.height * scale).toInt(),
+          interpolation: img.Interpolation.average
+        );
+      } else {
+        debugPrint('✅ Taille optimale ($maxDimension px) - Pas de redimensionnement');
+      }
 
       // 2. Niveaux de gris
       debugPrint('🔄 Conversion en niveaux de gris...');

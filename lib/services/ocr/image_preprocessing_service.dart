@@ -64,16 +64,33 @@ class ImagePreprocessingService {
 
   /// Augmente la netteté de l'image
   img.Image _sharpenImage(img.Image image) {
-    // Application d'un filtre de netteté pour améliorer les contours
-    // Matrice de convolution pour le sharpening:
-    // [ 0, -1,  0]
-    // [-1,  5, -1]
-    // [ 0, -1,  0]
-    return img.convolution(image, [
-      0, -1, 0,
-      -1, 5, -1,
-      0, -1, 0
-    ]);
+    // Dans le package image 4.x, on utilise une approche manuelle pour le sharpening
+    // Alternative: augmenter davantage le contraste et utiliser un edge enhancement
+
+    // Appliquer un léger flou gaussien puis le soustraire de l'original
+    // pour créer un effet de netteté (unsharp mask)
+    final blurred = img.gaussianBlur(image.clone(), radius: 1);
+
+    // Créer une version sharpened en amplifiant les différences
+    final sharpened = image.clone();
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final originalPixel = image.getPixel(x, y);
+        final blurredPixel = blurred.getPixel(x, y);
+
+        final originalLum = img.getLuminance(originalPixel);
+        final blurredLum = img.getLuminance(blurredPixel);
+
+        // Amplifier la différence entre original et flouté
+        final diff = originalLum - blurredLum;
+        final newLum = (originalLum + diff * 1.5).clamp(0, 255).toInt();
+
+        final newColor = img.ColorRgb8(newLum, newLum, newLum);
+        sharpened.setPixel(x, y, newColor);
+      }
+    }
+
+    return sharpened;
   }
 
   /// Binarise l'image (conversion en noir et blanc pur)

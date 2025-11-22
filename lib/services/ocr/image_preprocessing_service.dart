@@ -33,17 +33,13 @@ class ImagePreprocessingService {
       debugPrint('🔄 Preprocessing: Conversion en niveaux de gris...');
       image = img.grayscale(image);
 
-      // 3. Augmentation du contraste (pour faire ressortir les chiffres LCD)
-      debugPrint('🔄 Preprocessing: Augmentation du contraste...');
-      image = img.contrast(image, contrast: 120); // Augmente le contraste de 20%
-
-      // 4. Augmentation de la luminosité si l'image est trop sombre
-      debugPrint('🔄 Preprocessing: Ajustement de la luminosité...');
-      image = img.brightness(image, brightness: 10);
-
-      // 5. Augmentation de la netteté (sharpening)
-      debugPrint('🔄 Preprocessing: Augmentation de la netteté...');
-      image = img.adjustColor(image, saturation: 0); // Désaturation complète pour le N&B
+      // 3. Augmentation du contraste et luminosité (pour faire ressortir les chiffres LCD)
+      debugPrint('🔄 Preprocessing: Augmentation du contraste et luminosité...');
+      image = img.adjustColor(image,
+        contrast: 1.2,  // Augmente le contraste de 20%
+        brightness: 1.1, // Augmente la luminosité de 10%
+        saturation: 0    // Désaturation complète pour le N&B
+      );
 
       // 6. Binarisation (seuil adaptatif pour LCD)
       debugPrint('🔄 Preprocessing: Binarisation...');
@@ -99,8 +95,11 @@ class ImagePreprocessingService {
       image = img.grayscale(image);
 
       // Contraste et luminosité plus agressifs
-      image = img.contrast(image, contrast: 150);
-      image = img.brightness(image, brightness: 20);
+      image = img.adjustColor(image,
+        contrast: 1.5,    // Augmente le contraste de 50%
+        brightness: 1.2,  // Augmente la luminosité de 20%
+        saturation: 0
+      );
 
       // Seuil plus bas pour capturer les segments LCD sombres
       image = _applyThreshold(image, threshold: 90);
@@ -136,14 +135,12 @@ class ImagePreprocessingService {
       // 1. Niveaux de gris
       image = img.grayscale(image);
 
-      // 2. Augmentation agressive du contraste pour LCD
-      image = img.contrast(image, contrast: 140);
-
-      // 3. Ajustement de la luminosité
-      image = img.brightness(image, brightness: 15);
-
-      // 4. Netteté pour affiner les bords des segments
-      image = img.adjustColor(image, saturation: 0);
+      // 2. Augmentation agressive du contraste et luminosité pour LCD
+      image = img.adjustColor(image,
+        contrast: 1.4,    // Augmente le contraste de 40%
+        brightness: 1.15, // Augmente la luminosité de 15%
+        saturation: 0     // Désaturation complète
+      );
 
       // 5. Inversion si l'image a un fond sombre (segments clairs sur fond sombre)
       final avgLuminance = _getAverageLuminance(image);

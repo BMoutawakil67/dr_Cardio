@@ -67,7 +67,10 @@ class BloodPressureOcrService {
   /// Parse le texte reconnu pour extraire les valeurs de tension
   BloodPressureOcrResult _parseBloodPressureValues(String text) {
     // Nettoyer le texte
-    final cleanText = text.replaceAll('\n', ' ').replaceAll('  ', ' ');
+    var cleanText = text.replaceAll('\n', ' ').replaceAll('  ', ' ');
+
+    // Filtrer les patterns de date/heure pour éviter les interférences
+    cleanText = _filterDateTimePatterns(cleanText);
 
     // Extraire tous les nombres du texte
     final numbers = _extractNumbers(cleanText);
@@ -210,6 +213,42 @@ class BloodPressureOcrService {
         .allMatches(text)
         .map((m) => int.parse(m.group(0)!))
         .toList();
+  }
+
+  /// Filtre et supprime les patterns de date/heure qui peuvent interférer avec la détection
+  /// Exemples: "8:30", "08:30 AM", "10.08", "10/08/2024", etc.
+  String _filterDateTimePatterns(String text) {
+    debugPrint('🔍 Texte avant filtrage date/heure: "$text"');
+
+    var filtered = text;
+
+    // Pattern 1: Heures avec : (8:30, 08:30, 12:45, etc.)
+    // Remplacer par un espace pour ne pas coller les mots
+    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}:\d{2}\b'), ' ');
+
+    // Pattern 2: Heures avec AM/PM (8:30 AM, 12:45 PM, etc.)
+    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\b'), ' ');
+
+    // Pattern 3: Heures avec 'h' (8h30, 12h45, etc.)
+    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}h\d{2}\b', caseSensitive: false), ' ');
+
+    // Pattern 4: Dates avec points (10.08, 10.08., 10.08.2024, etc.)
+    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?\b'), ' ');
+
+    // Pattern 5: Dates avec slashes (10/08, 10/08/24, 10/08/2024, etc.)
+    // ATTENTION: On doit éviter de supprimer les patterns de tension comme 120/80
+    // On vérifie que les nombres sont petits (<= 31 pour jours/mois)
+    filtered = filtered.replaceAll(RegExp(r'\b([0-2]?\d|3[01])/([0-1]?\d|1[0-2])(?:/\d{2,4})?\b'), ' ');
+
+    // Pattern 6: Dates avec tirets (10-08, 10-08-24, etc.)
+    filtered = filtered.replaceAll(RegExp(r'\b([0-2]?\d|3[01])-([0-1]?\d|1[0-2])(?:-\d{2,4})?\b'), ' ');
+
+    // Nettoyer les espaces multiples créés par les remplacements
+    filtered = filtered.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    debugPrint('✅ Texte après filtrage date/heure: "$filtered"');
+
+    return filtered;
   }
 
   /// Libérer les ressources

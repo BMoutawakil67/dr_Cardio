@@ -37,23 +37,66 @@ class ImprovedBloodPressureOcrService {
   /// Analyse une image et extrait les valeurs de tension avec Tesseract
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
     try {
-      debugPrint('🔍 OCR Amélioré: Analyse de $imagePath');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('🚀 DÉBUT ANALYSE OCR TESSERACT');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('📸 Image source: $imagePath');
 
-      // Vérifier que l'image existe
-      if (!await File(imagePath).exists()) {
+      // ÉTAPE 1: Vérification de l'image source
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 1/5: Vérification de l\'image source');
+      debugPrint('─────────────────────────────────────────────────────────');
+
+      final imageFile = File(imagePath);
+      if (!await imageFile.exists()) {
+        debugPrint('❌ ÉCHEC: Image introuvable à $imagePath');
         throw Exception('Image introuvable: $imagePath');
       }
 
-      // Étape 1: Preprocessing de l'image
-      debugPrint('🔍 OCR: Preprocessing de l\'image...');
+      final imageSize = await imageFile.length();
+      debugPrint('✅ Image trouvée');
+      debugPrint('   📦 Taille: ${(imageSize / 1024).toStringAsFixed(2)} KB');
+      debugPrint('   📁 Chemin: $imagePath');
+
+      // ÉTAPE 2: Preprocessing de l'image
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 2/5: Preprocessing de l\'image');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('🔄 Lancement du preprocessing...');
+      debugPrint('   • Conversion en niveaux de gris');
+      debugPrint('   • Augmentation du contraste');
+      debugPrint('   • Sharpening (netteté)');
+      debugPrint('   • Binarisation (noir/blanc)');
+
       final processedImagePath = await _preprocessingService.preprocessForOcr(imagePath);
 
-      // Étape 2: OCR avec Tesseract
-      debugPrint('🔍 OCR: Analyse Tesseract en cours...');
+      debugPrint('✅ Preprocessing terminé');
+      debugPrint('   📁 Image prétraitée: $processedImagePath');
 
-      // Configurer Tesseract pour reconnaître uniquement les chiffres
-      // PSM 7 = Traiter l'image comme une seule ligne de texte
-      // PSM 6 = Assumer un bloc uniforme de texte
+      // ÉTAPE 3: Configuration Tesseract
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 3/5: Configuration Tesseract OCR');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('⚙️ Configuration:');
+      debugPrint('   • Langue: eng');
+      debugPrint('   • PSM Mode: 6 (bloc uniforme)');
+      debugPrint('   • Whitelist: 0123456789/: ');
+      debugPrint('   • Preserve spaces: Oui');
+
+      // ÉTAPE 4: Analyse OCR avec Tesseract
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 4/5: Analyse OCR Tesseract');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('🔍 Lancement de l\'analyse Tesseract...');
+      debugPrint('⏳ Ceci peut prendre 1-3 secondes...');
+
+      final startTime = DateTime.now();
+
       String text = await FlutterTesseractOcr.extractText(
         processedImagePath,
         language: 'eng',
@@ -64,29 +107,67 @@ class ImprovedBloodPressureOcrService {
         },
       );
 
-      debugPrint('🔍 OCR Tesseract: Texte reconnu: "$text"');
-      logger.i('OCR Tesseract Raw Text: $text');
+      final duration = DateTime.now().difference(startTime);
+
+      debugPrint('✅ Analyse Tesseract terminée');
+      debugPrint('   ⏱️ Durée: ${duration.inMilliseconds}ms');
+      debugPrint('   📝 Texte brut reconnu: "${text.isEmpty ? '(vide)' : text}"');
+      debugPrint('   📏 Longueur: ${text.length} caractères');
+
+      logger.i('OCR Tesseract Raw Text: $text (${duration.inMilliseconds}ms)');
 
       // Nettoyer le fichier temporaire si c'est une image prétraitée
       if (processedImagePath != imagePath) {
         try {
           await File(processedImagePath).delete();
+          debugPrint('🗑️ Fichier temporaire supprimé: $processedImagePath');
         } catch (e) {
           debugPrint('⚠️ Impossible de supprimer le fichier temp: $e');
         }
       }
 
+      // ÉTAPE 5: Parsing des valeurs
+      debugPrint('');
+      debugPrint('─────────────────────────────────────────────────────────');
+      debugPrint('📋 ÉTAPE 5/5: Parsing des valeurs de tension');
+      debugPrint('─────────────────────────────────────────────────────────');
+
       if (text.trim().isEmpty) {
-        // Essayer avec preprocessing adaptatif
-        debugPrint('🔍 OCR: Tentative avec preprocessing adaptatif...');
+        debugPrint('⚠️ Aucun texte détecté - tentative avec preprocessing adaptatif...');
         return await _extractWithAdaptivePreprocessing(imagePath);
       }
 
-      return _parseBloodPressureValues(text);
+      debugPrint('🔍 Extraction des nombres et patterns...');
+      final result = _parseBloodPressureValues(text);
+
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('✅ RÉSULTAT FINAL');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('   💉 Systolique: ${result.systolic ?? "non détecté"} mmHg');
+      debugPrint('   💉 Diastolique: ${result.diastolic ?? "non détecté"} mmHg');
+      debugPrint('   ❤️ Pouls: ${result.pulse ?? "non détecté"} bpm');
+      debugPrint('   📊 Confiance: ${(result.confidence * 100).toStringAsFixed(1)}%');
+      debugPrint('   ✓ Valide: ${result.isValid ? "Oui" : "Non"}');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('');
+
+      return result;
     } catch (e, stackTrace) {
-      debugPrint('❌ OCR Erreur: $e');
-      debugPrint('❌ Stack: $stackTrace');
+      debugPrint('');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('❌ ERREUR CRITIQUE OCR');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('Type: ${e.runtimeType}');
+      debugPrint('Message: $e');
+      debugPrint('');
+      debugPrint('Stack trace:');
+      debugPrint('$stackTrace');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('');
+
       logger.e('Erreur OCR Tesseract: $e');
+
       return BloodPressureOcrResult(
         rawText: '',
         error: e.toString(),

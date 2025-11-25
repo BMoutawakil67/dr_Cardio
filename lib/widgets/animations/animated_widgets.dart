@@ -298,6 +298,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
 /// Inspiré de Reflectly pour des transitions élégantes entre écrans
 class FadeSlidePageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
+  @override
   final Duration transitionDuration;
   final Curve curve;
 
@@ -348,6 +349,7 @@ class FadeSlidePageRoute<T> extends PageRouteBuilder<T> {
 /// Animation similaire à Material Design mais plus douce
 class ScaleFadePageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
+  @override
   final Duration transitionDuration;
 
   ScaleFadePageRoute({

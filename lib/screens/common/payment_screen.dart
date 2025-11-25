@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 
 class PaymentScreen extends StatefulWidget {

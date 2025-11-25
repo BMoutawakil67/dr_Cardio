@@ -153,7 +153,9 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                     StreamBuilder<List<MedicalNote>>(
                       stream: _medicalNotesStream,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                        if (snapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            !snapshot.hasData) {
                           return Container(
                             height: 200,
                             alignment: Alignment.center,
@@ -171,7 +173,8 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.show_chart, size: 48, color: Colors.grey.shade400),
+                                Icon(Icons.show_chart,
+                                    size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Aucune mesure enregistrée',
@@ -221,7 +224,8 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
             StreamBuilder<List<MedicalNote>>(
               stream: _medicalNotesStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Card(
                     child: Padding(
                       padding: EdgeInsets.all(16),
@@ -261,11 +265,15 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                     (diastolicValues.reduce((a, b) => a + b) / notes.length)
                         .round();
 
-                final minSystolic = systolicValues.reduce((a, b) => a < b ? a : b);
-                final minDiastolic = diastolicValues.reduce((a, b) => a < b ? a : b);
+                final minSystolic =
+                    systolicValues.reduce((a, b) => a < b ? a : b);
+                final minDiastolic =
+                    diastolicValues.reduce((a, b) => a < b ? a : b);
 
-                final maxSystolic = systolicValues.reduce((a, b) => a > b ? a : b);
-                final maxDiastolic = diastolicValues.reduce((a, b) => a > b ? a : b);
+                final maxSystolic =
+                    systolicValues.reduce((a, b) => a > b ? a : b);
+                final maxDiastolic =
+                    diastolicValues.reduce((a, b) => a > b ? a : b);
 
                 // Calculate trend (simple: compare first half vs second half)
                 String trend = '-';
@@ -301,12 +309,10 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                             value: '$avgSystolic/$avgDiastolic'),
                         const Divider(),
                         _StatRow(
-                            label: 'Min:',
-                            value: '$minSystolic/$minDiastolic'),
+                            label: 'Min:', value: '$minSystolic/$minDiastolic'),
                         const Divider(),
                         _StatRow(
-                            label: 'Max:',
-                            value: '$maxSystolic/$maxDiastolic'),
+                            label: 'Max:', value: '$maxSystolic/$maxDiastolic'),
                         const Divider(),
                         _StatRow(label: 'Mesures:', value: '${notes.length}'),
                         const Divider(),
@@ -328,7 +334,8 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
             StreamBuilder<List<MedicalNote>>(
               stream: _medicalNotesStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
@@ -350,12 +357,14 @@ class _PatientHistoryScreenState extends State<PatientHistoryScreen> {
                     return _MeasureCard(
                       noteId: note.id,
                       doctorId: note.doctorId,
-                      date: '${note.date.day}/${note.date.month}/${note.date.year}',
+                      date:
+                          '${note.date.day}/${note.date.month}/${note.date.year}',
                       systolic: note.systolic,
                       diastolic: note.diastolic,
                       pulse: note.heartRate,
                       status: 'Normal', // TODO: Implement status logic
-                      statusColor: AppTheme.successGreen, // TODO: Implement color logic
+                      statusColor:
+                          AppTheme.successGreen, // TODO: Implement color logic
                       context: note.context,
                       onRefresh: _refreshStream,
                     );
@@ -437,7 +446,8 @@ class _HistoryChart extends StatelessWidget {
       return Container(
         height: 200,
         alignment: Alignment.center,
-        child: Text('Aucune donnée', style: TextStyle(color: Colors.grey.shade600)),
+        child: Text('Aucune donnée',
+            style: TextStyle(color: Colors.grey.shade600)),
       );
     }
 
@@ -461,7 +471,8 @@ class _HistoryChart extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 30,
-                interval: notes.length > 10 ? (notes.length / 5).ceilToDouble() : 1,
+                interval:
+                    notes.length > 10 ? (notes.length / 5).ceilToDouble() : 1,
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
                   if (index >= 0 && index < notes.length) {
@@ -496,8 +507,10 @@ class _HistoryChart extends StatelessWidget {
                 },
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
           borderData: FlBorderData(
             show: true,
@@ -509,9 +522,12 @@ class _HistoryChart extends StatelessWidget {
           lineBarsData: [
             // Systolique (rouge)
             LineChartBarData(
-              spots: notes.asMap().entries.map((e) =>
-                FlSpot(e.key.toDouble(), e.value.systolic.toDouble())
-              ).toList(),
+              spots: notes
+                  .asMap()
+                  .entries
+                  .map((e) =>
+                      FlSpot(e.key.toDouble(), e.value.systolic.toDouble()))
+                  .toList(),
               isCurved: true,
               curveSmoothness: 0.3,
               color: Colors.red,
@@ -534,9 +550,12 @@ class _HistoryChart extends StatelessWidget {
             ),
             // Diastolique (bleu)
             LineChartBarData(
-              spots: notes.asMap().entries.map((e) =>
-                FlSpot(e.key.toDouble(), e.value.diastolic.toDouble())
-              ).toList(),
+              spots: notes
+                  .asMap()
+                  .entries
+                  .map((e) =>
+                      FlSpot(e.key.toDouble(), e.value.diastolic.toDouble()))
+                  .toList(),
               isCurved: true,
               curveSmoothness: 0.3,
               color: AppTheme.primaryBlue,
@@ -559,9 +578,12 @@ class _HistoryChart extends StatelessWidget {
             ),
             // Pouls (cyan)
             LineChartBarData(
-              spots: notes.asMap().entries.map((e) =>
-                FlSpot(e.key.toDouble(), e.value.heartRate.toDouble())
-              ).toList(),
+              spots: notes
+                  .asMap()
+                  .entries
+                  .map((e) =>
+                      FlSpot(e.key.toDouble(), e.value.heartRate.toDouble()))
+                  .toList(),
               isCurved: true,
               curveSmoothness: 0.3,
               color: const Color(0xFF3DB9CE),

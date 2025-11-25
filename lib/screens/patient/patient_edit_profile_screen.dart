@@ -202,7 +202,7 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     decoration: const InputDecoration(
                       labelText: 'Genre',
                       prefixIcon: Icon(Icons.person_outline),

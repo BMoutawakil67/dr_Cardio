@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:dr_cardio/utils/logger.dart';
+import 'package:image/image.dart' as img;
 
 /// Service OCR utilisant l'API OCR.space
 /// API gratuite avec excellente performance sur les affichages LCD
@@ -23,130 +24,92 @@ class OcrSpaceService {
   /// - [ocrEngine]: Moteur OCR à utiliser (1 ou 2, défaut: 2 - meilleur pour LCD)
   ///
   /// Retourne le texte extrait ou null en cas d'erreur
-  Future<String?> extractText(
+  Future<({String rawText, String? error})> extractText(
     String imagePath, {
     String language = 'eng',
     bool detectOrientation = true,
     bool scale = true,
-    int ocrEngine = 2, // Engine 2 est meilleur pour les chiffres LCD
+    int ocrEngine = 2, // Moteur 2 est souvent meilleur pour les écrans LCD
   }) async {
+    if (!await _checkInternetConnection()) {
+      const errorMsg = 'Pas de connexion internet pour OCR.space';
+      debugPrint('❌ $errorMsg');
+      return (rawText: '', error: errorMsg);
+    }
+
     try {
-      debugPrint('');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('🌐 OCR.space API - Début');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('📸 Image: $imagePath');
-      debugPrint('🔧 Moteur: Engine $ocrEngine (optimisé pour LCD)');
+      var imageBytes = await File(imagePath).readAsBytes();
+      final imageSizeMB = imageBytes.lengthInBytes / (1024 * 1024);
+      debugPrint(
+          'Taille initiale de l\\\'image: ${imageSizeMB.toStringAsFixed(2)} Mo');
 
-      // Vérifier la connexion internet
-      final hasInternet = await _checkInternetConnection();
-      if (!hasInternet) {
-        debugPrint('⚠️ Pas de connexion internet - OCR.space ignoré');
-        return null;
+      // Si l'image est > 500 Ko, on la compresse de manière plus agressive
+      if (imageBytes.lengthInBytes > 500 * 1024) {
+        debugPrint('Image > 500 Ko, compression agressive en cours...');
+        img.Image? image = img.decodeImage(imageBytes);
+
+        if (image != null) {
+          // Redimensionner si la largeur est > 1000px
+          if (image.width > 1000) {
+            image = img.copyResize(image, width: 1000);
+            debugPrint('Image redimensionnée à 1000px de large');
+          }
+
+          // Compresser en JPEG avec une qualité de 75%
+          imageBytes = img.encodeJpg(image, quality: 75);
+          final newSizeMB = imageBytes.lengthInBytes / (1024 * 1024);
+          debugPrint(
+              'Nouvelle taille de l\\\'image après compression: ${newSizeMB.toStringAsFixed(2)} Mo');
+        }
       }
 
-      debugPrint('✅ Connexion internet disponible');
-
-      // Lire le fichier image
-      final imageFile = File(imagePath);
-      if (!await imageFile.exists()) {
-        debugPrint('❌ Image introuvable: $imagePath');
-        return null;
-      }
-
-      final imageBytes = await imageFile.readAsBytes();
       final base64Image = base64Encode(imageBytes);
 
-      debugPrint('📦 Image encodée (${(imageBytes.length / 1024).toStringAsFixed(2)} KB)');
-      debugPrint('🚀 Envoi de la requête à OCR.space...');
+      final uri = Uri.parse(_apiUrl);
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['apikey'] = _apiKey
+        ..fields['language'] = language
+        ..fields['detectOrientation'] = detectOrientation.toString()
+        ..fields['scale'] = scale.toString()
+        ..fields['OCREngine'] = ocrEngine.toString()
+        ..fields['base64Image'] = 'data:image/jpeg;base64,$base64Image';
 
-      final startTime = DateTime.now();
-
-      // Préparer la requête
-      final request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
-
-      // Headers
-      request.headers['apikey'] = _apiKey;
-
-      // Paramètres
-      request.fields['language'] = language;
-      request.fields['isOverlayRequired'] = 'false';
-      request.fields['detectOrientation'] = detectOrientation.toString();
-      request.fields['scale'] = scale.toString();
-      request.fields['OCREngine'] = ocrEngine.toString();
-      request.fields['base64Image'] = 'data:image/jpeg;base64,$base64Image';
-
-      // Envoyer la requête
-      final response = await request.send().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          debugPrint('⏱️ Timeout OCR.space (15s)');
-          throw TimeoutException('OCR.space timeout');
-        },
-      );
-
-      final duration = DateTime.now().difference(startTime);
-      debugPrint('⏱️ Réponse reçue en ${duration.inMilliseconds}ms');
-
-      // Lire la réponse
+      final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode != 200) {
-        debugPrint('❌ Erreur HTTP ${response.statusCode}');
-        debugPrint('Response: $responseBody');
-        logger.e('OCR.space HTTP Error: ${response.statusCode}');
-        return null;
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(responseBody);
+        if (jsonResponse['IsErroredOnProcessing'] == true) {
+          final errorMsg = 'Erreur OCR.space: ${jsonResponse['ErrorMessage']}';
+          debugPrint('❌ $errorMsg');
+          logger.e(errorMsg);
+          return (rawText: '', error: errorMsg);
+        }
+
+        if (jsonResponse['ParsedResults'] != null &&
+            jsonResponse['ParsedResults'].isNotEmpty) {
+          final rawText =
+              jsonResponse['ParsedResults'][0]['ParsedText'] as String;
+          debugPrint('✅ Texte extrait par OCR.space: \\\"$rawText\\\"');
+          logger.i('Texte brut OCR.space: $rawText');
+          return (rawText: rawText, error: null);
+        } else {
+          const errorMsg = 'Aucun texte détecté par OCR.space';
+          debugPrint('⚠️ $errorMsg');
+          return (rawText: '', error: errorMsg);
+        }
+      } else {
+        final errorMsg =
+            'Erreur API OCR.space (Code: ${response.statusCode}): $responseBody';
+        debugPrint('❌ $errorMsg');
+        logger.e(errorMsg);
+        return (rawText: '', error: errorMsg);
       }
-
-      // Parser la réponse JSON
-      final jsonResponse = json.decode(responseBody);
-
-      debugPrint('📋 Parsing de la réponse JSON...');
-
-      // Vérifier les erreurs
-      if (jsonResponse['IsErroredOnProcessing'] == true) {
-        final errorMessage = jsonResponse['ErrorMessage']?.join(', ') ?? 'Erreur inconnue';
-        debugPrint('❌ Erreur OCR.space: $errorMessage');
-        logger.e('OCR.space Processing Error: $errorMessage');
-        return null;
-      }
-
-      // Extraire le texte
-      final parsedResults = jsonResponse['ParsedResults'];
-      if (parsedResults == null || parsedResults.isEmpty) {
-        debugPrint('⚠️ Aucun résultat retourné par OCR.space');
-        return null;
-      }
-
-      final extractedText = parsedResults[0]['ParsedText'] as String?;
-
-      if (extractedText == null || extractedText.trim().isEmpty) {
-        debugPrint('⚠️ Texte extrait vide');
-        return null;
-      }
-
-      debugPrint('');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('✅ OCR.space - Succès');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('📝 Texte extrait: "$extractedText"');
-      debugPrint('⏱️ Durée totale: ${duration.inMilliseconds}ms');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('');
-
-      logger.i('OCR.space Success: "$extractedText" (${duration.inMilliseconds}ms)');
-
-      return extractedText.trim();
-
-    } on TimeoutException catch (e) {
-      debugPrint('⏱️ Timeout OCR.space: $e');
-      logger.w('OCR.space Timeout: $e');
-      return null;
     } catch (e, stackTrace) {
-      debugPrint('❌ Erreur OCR.space: $e');
-      debugPrint('Stack trace: $stackTrace');
-      logger.e('OCR.space Error: $e');
-      return null;
+      final errorMsg = 'Exception lors de l\\\'appel à OCR.space: $e';
+      debugPrint('❌ $errorMsg\\n$stackTrace');
+      logger.e(errorMsg, stackTrace: stackTrace);
+      return (rawText: '', error: errorMsg);
     }
   }
 
@@ -179,13 +142,14 @@ class OcrSpaceService {
 
       // Note: Le preprocessing est déjà géré par le service principal
       // Cette méthode est juste un wrapper pour cohérence
-      return await extractText(
+      final result = await extractText(
         imagePath,
         language: language,
         detectOrientation: true,
         scale: true,
         ocrEngine: 2, // Engine 2 meilleur pour les chiffres
       );
+      return result.rawText;
     } catch (e) {
       debugPrint('❌ Erreur preprocessing OCR.space: $e');
       return null;

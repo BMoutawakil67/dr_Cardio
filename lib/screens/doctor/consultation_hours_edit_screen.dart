@@ -240,7 +240,7 @@ class _ConsultationHoursEditScreenState
                         Switch(
                           value: schedule.enabled,
                           onChanged: (value) => _toggleDay(day, value),
-                          activeColor: AppTheme.primaryBlue,
+                          activeThumbColor: AppTheme.primaryBlue,
                         ),
                       ],
                     ),

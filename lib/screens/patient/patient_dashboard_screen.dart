@@ -9,7 +9,6 @@ import 'package:dr_cardio/routes/app_routes.dart';
 import 'package:dr_cardio/config/app_theme.dart';
 import 'package:dr_cardio/widgets/animations/animated_widgets.dart';
 import 'package:dr_cardio/widgets/navigation/shared_bottom_navigation.dart';
-import 'package:dr_cardio/widgets/offline/offline_aware_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';

@@ -176,7 +176,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                                           ),
                                         ),
                                         Text(
-                                          '${doctorData.specialty}',
+                                          doctorData.specialty,
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall?.copyWith(

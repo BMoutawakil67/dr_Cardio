@@ -322,7 +322,7 @@ class _PatientRegisterScreenState extends State<PatientRegisterScreen> {
 
             // Genre
             DropdownButtonFormField<String>(
-              value: _selectedGender,
+              initialValue: _selectedGender,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.person_outline),
                 labelText: 'Genre',

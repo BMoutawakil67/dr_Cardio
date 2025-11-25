@@ -34,155 +34,97 @@ class BloodPressureOcrResult {
 /// Service OCR pour extraire les valeurs de tension artérielle depuis une image
 class BloodPressureOcrService {
   final TextRecognizer _textRecognizer = TextRecognizer();
-  final ImagePreprocessingService _preprocessingService = ImagePreprocessingService();
+  final ImagePreprocessingService _preprocessingService =
+      ImagePreprocessingService();
   final OcrSpaceService _ocrSpaceService = OcrSpaceService();
 
   /// Analyse une image et extrait les valeurs de tension
-  /// Utilise plusieurs stratégies OCR pour maximiser la détection LCD
   Future<BloodPressureOcrResult> extractBloodPressure(String imagePath) async {
     try {
-      debugPrint('');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('🚀 DÉBUT ANALYSE OCR');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('📸 Image source: $imagePath');
-
-      // STRATÉGIE 1: OCR.space API (si internet disponible)
-      debugPrint('');
-      debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 1/5: OCR.space API Cloud');
-      debugPrint('─────────────────────────────────────────────────────────');
-
-      try {
-        debugPrint('🔍 Appel OCR.space en cours...');
-        final ocrSpaceText = await _ocrSpaceService.extractText(imagePath);
-        debugPrint('🔍 OCR.space retourné: ${ocrSpaceText ?? "(null)"}');
-
-        if (ocrSpaceText != null && ocrSpaceText.isNotEmpty) {
-          debugPrint('✅ OCR.space a retourné du texte');
-          final ocrSpaceResult = _parseBloodPressureValues(ocrSpaceText);
-          debugPrint('📊 Résultat OCR.space: $ocrSpaceResult');
-
-          if (ocrSpaceResult.isValid && ocrSpaceResult.confidence >= 0.75) {
-            debugPrint('✅ Détection réussie avec OCR.space !');
-            return ocrSpaceResult;
-          }
-
-          debugPrint('⚠️ OCR.space: Confiance insuffisante (${(ocrSpaceResult.confidence * 100).toStringAsFixed(1)}%)');
-        } else {
-          debugPrint('⚠️ OCR.space indisponible ou aucun texte détecté');
+      // Stratégie 1: OCR.space API (Cloud)
+      debugPrint('🔥 Stratégie 1: Tentative avec l\'API OCR.space...');
+      final ocrSpaceResult = await _ocrSpaceService.extractText(imagePath);
+      if (ocrSpaceResult.rawText.isNotEmpty) {
+        final parsedResult = _parseBloodPressureValues(ocrSpaceResult.rawText);
+        if (parsedResult.isValid) {
+          debugPrint(
+              '✅ Stratégie 1 (OCR.space) a réussi: ${parsedResult.toString()}');
+          logger.i('Stratégie 1 (OCR.space) a réussi: $parsedResult');
+          return parsedResult;
         }
-      } catch (e, stackTrace) {
-        debugPrint('❌ ERREUR OCR.space: $e');
-        debugPrint('Stack: $stackTrace');
-        logger.e('OCR.space error: $e');
       }
+      debugPrint(
+          '⚠️ Stratégie 1 (OCR.space) a échoué ou n\'a pas trouvé de valeurs valides.');
+      logger.w(
+          'Stratégie 1 (OCR.space) a échoué. Erreur: ${ocrSpaceResult.error}');
 
-      // STRATÉGIE 2: Google ML Kit avec image originale
-      debugPrint('');
-      debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 2/5: Google ML Kit (image originale)');
-      debugPrint('─────────────────────────────────────────────────────────');
+      // Si la stratégie 1 échoue, on retourne une erreur car les autres sont désactivées
+      return BloodPressureOcrResult(
+        rawText: ocrSpaceResult.rawText,
+        error:
+            'La stratégie OCR.space a échoué et les stratégies locales sont désactivées. (Erreur: ${ocrSpaceResult.error})',
+      );
 
-      var result = await _tryOcrOnImage(imagePath, 'ML Kit Originale');
-
-      if (result.isValid && result.confidence >= 0.85) {
-        debugPrint('✅ Détection réussie avec l\'image originale !');
+/*
+      // Stratégie 2: Google ML Kit (Local) - Image originale
+      debugPrint(
+          '🔥 Stratégie 2: Tentative avec Google ML Kit sur l\'image originale...');
+      var result = await _tryOcrOnImage(imagePath, 'Original');
+      if (result.isValid) {
+        debugPrint('✅ Stratégie 2 (Original) a réussi: ${result.toString()}');
         return result;
       }
+      debugPrint('⚠️ Stratégie 2 (Original) a échoué.');
 
-      debugPrint('⚠️ Détection insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
-      debugPrint('   Passage au preprocessing LCD optimisé...');
-
-      // STRATÉGIE 3: Preprocessing optimisé pour LCD
-      debugPrint('');
-      debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 3/5: Preprocessing LCD optimisé');
-      debugPrint('─────────────────────────────────────────────────────────');
-
-      final lcdProcessedPath = await _preprocessingService.preprocessForLcdDisplay(imagePath);
-      final lcdResult = await _tryOcrOnImage(lcdProcessedPath, 'LCD Optimisé');
-
-      // Nettoyer le fichier temporaire
-      if (lcdProcessedPath != imagePath) {
-        _cleanupTempFile(lcdProcessedPath);
+      // Stratégie 3: Google ML Kit (Local) - Prétraitement pour écran LCD
+      debugPrint(
+          '🔥 Stratégie 3: Tentative avec prétraitement pour écran LCD...');
+      final lcdImagePath =
+          await _preprocessingService.preprocessForLcdDisplay(imagePath);
+      if (lcdImagePath != null) {
+        result = await _tryOcrOnImage(lcdImagePath, 'LCD Preprocessed');
+        _cleanupTempFile(lcdImagePath);
+        if (result.isValid) {
+          debugPrint('✅ Stratégie 3 (LCD) a réussi: ${result.toString()}');
+          return result;
+        }
+        debugPrint('⚠️ Stratégie 3 (LCD) a échoué.');
       }
 
-      // Comparer avec le résultat précédent et garder le meilleur
-      if (lcdResult.confidence > result.confidence ||
-          (lcdResult.isValid && !result.isValid)) {
-        result = lcdResult;
+      // Stratégie 4: Google ML Kit (Local) - Prétraitement avec seuillage adaptatif
+      debugPrint('🔥 Stratégie 4: Tentative avec seuillage adaptatif...');
+      final adaptiveImagePath =
+          await _preprocessingService.preprocessWithAdaptiveThreshold(imagePath);
+      if (adaptiveImagePath != null) {
+        result = await _tryOcrOnImage(adaptiveImagePath, 'Adaptive Threshold');
+        _cleanupTempFile(adaptiveImagePath);
+        if (result.isValid) {
+          debugPrint('✅ Stratégie 4 (Adaptive) a réussi: ${result.toString()}');
+          return result;
+        }
+        debugPrint('⚠️ Stratégie 4 (Adaptive) a échoué.');
       }
 
-      if (result.isValid && result.confidence >= 0.75) {
-        debugPrint('✅ Détection réussie avec preprocessing LCD !');
-        return result;
+      // Stratégie 5: Google ML Kit (Local) - Isolation de l'écran LCD
+      debugPrint('🔥 Stratégie 5: Tentative avec isolation de l\'écran LCD...');
+      final isolatedLcdPath =
+          await _preprocessingService.preprocessWithLcdIsolation(imagePath);
+      if (isolatedLcdPath != null) {
+        result = await _tryOcrOnImage(isolatedLcdPath, 'LCD Isolation');
+        _cleanupTempFile(isolatedLcdPath);
+        if (result.isValid) {
+          debugPrint(
+              '✅ Stratégie 5 (LCD Isolation) a réussi: ${result.toString()}');
+          return result;
+        }
+        debugPrint('⚠️ Stratégie 5 (LCD Isolation) a échoué.');
       }
-
-      debugPrint('⚠️ Détection encore insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
-      debugPrint('   Passage au preprocessing adaptatif...');
-
-      // STRATÉGIE 4: Preprocessing adaptatif (plus agressif)
-      debugPrint('');
-      debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 4/5: Preprocessing adaptatif');
-      debugPrint('─────────────────────────────────────────────────────────');
-
-      final adaptiveProcessedPath = await _preprocessingService.preprocessWithAdaptiveThreshold(imagePath);
-      final adaptiveResult = await _tryOcrOnImage(adaptiveProcessedPath, 'Adaptatif');
-
-      // Nettoyer le fichier temporaire
-      if (adaptiveProcessedPath != imagePath) {
-        _cleanupTempFile(adaptiveProcessedPath);
-      }
-
-      // Garder le meilleur résultat
-      if (adaptiveResult.confidence > result.confidence ||
-          (adaptiveResult.isValid && !result.isValid)) {
-        result = adaptiveResult;
-      }
-
-      if (result.isValid && result.confidence >= 0.75) {
-        debugPrint('✅ Détection réussie avec preprocessing adaptatif !');
-        return result;
-      }
-
-      debugPrint('⚠️ Détection encore insuffisante (confiance: ${(result.confidence * 100).toStringAsFixed(1)}%)');
-      debugPrint('   Passage à l\'isolation LCD...');
-
-      // STRATÉGIE 5: Isolation de la zone LCD (dernière tentative)
-      debugPrint('');
-      debugPrint('─────────────────────────────────────────────────────────');
-      debugPrint('📋 TENTATIVE 5/5: Isolation zone LCD');
-      debugPrint('─────────────────────────────────────────────────────────');
-
-      final lcdIsolatedPath = await _preprocessingService.preprocessWithLcdIsolation(imagePath);
-      final lcdIsolatedResult = await _tryOcrOnImage(lcdIsolatedPath, 'LCD Isolé');
-
-      // Nettoyer le fichier temporaire
-      if (lcdIsolatedPath != imagePath) {
-        _cleanupTempFile(lcdIsolatedPath);
-      }
-
-      // Garder le meilleur résultat final
-      if (lcdIsolatedResult.confidence > result.confidence ||
-          (lcdIsolatedResult.isValid && !result.isValid)) {
-        result = lcdIsolatedResult;
-      }
-
-      debugPrint('');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('✅ RÉSULTAT FINAL');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('   💉 Systolique: ${result.systolic ?? "non détecté"} mmHg');
-      debugPrint('   💉 Diastolique: ${result.diastolic ?? "non détecté"} mmHg');
-      debugPrint('   ❤️ Pouls: ${result.pulse ?? "non détecté"} bpm');
-      debugPrint('   📊 Confiance: ${(result.confidence * 100).toStringAsFixed(1)}%');
-      debugPrint('   ✓ Valide: ${result.isValid ? "Oui" : "Non"}');
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('');
-
-      return result;
+*/
+      // debugPrint('❌ Toutes les stratégies OCR ont échoué.');
+      // return BloodPressureOcrResult(
+      //   rawText: '', // On pourrait retourner le dernier texte brut ici
+      //   error: 'Toutes les stratégies OCR ont échoué.',
+      // );
     } catch (e, stackTrace) {
       debugPrint('');
       debugPrint('═══════════════════════════════════════════════════════════');
@@ -202,14 +144,16 @@ class BloodPressureOcrService {
   }
 
   /// Tente l'OCR sur une image et retourne le résultat
-  Future<BloodPressureOcrResult> _tryOcrOnImage(String imagePath, String strategyName) async {
+  Future<BloodPressureOcrResult> _tryOcrOnImage(
+      String imagePath, String strategyName) async {
     try {
       debugPrint('🔍 OCR [$strategyName]: Analyse...');
 
       final inputImage = InputImage.fromFilePath(imagePath);
       final recognizedText = await _textRecognizer.processImage(inputImage);
 
-      debugPrint('📝 OCR [$strategyName]: Texte brut: "${recognizedText.text}"');
+      debugPrint(
+          '📝 OCR [$strategyName]: Texte brut: "${recognizedText.text}"');
       logger.i('OCR [$strategyName] Raw Text: ${recognizedText.text}');
 
       if (recognizedText.text.trim().isEmpty) {
@@ -262,14 +206,16 @@ class BloodPressureOcrService {
 
     // Le systolique doit être > diastolique
     if (systolic <= diastolic) {
-      debugPrint('⚠️ Validation: Systolique ($systolic) <= Diastolique ($diastolic)');
+      debugPrint(
+          '⚠️ Validation: Systolique ($systolic) <= Diastolique ($diastolic)');
       return false;
     }
 
     // Pression pulsée (différence) devrait être raisonnable (minimum 20, maximum 100)
     final pulsePressure = systolic - diastolic;
     if (pulsePressure < 20 || pulsePressure > 100) {
-      debugPrint('⚠️ Validation: Pression pulsée $pulsePressure hors plage [20-100]');
+      debugPrint(
+          '⚠️ Validation: Pression pulsée $pulsePressure hors plage [20-100]');
       return false;
     }
 
@@ -318,15 +264,9 @@ class BloodPressureOcrService {
     var pulMatch = labelLeftPatterns['PUL']!.firstMatch(cleanText);
 
     // Si pas trouvé à gauche, chercher à droite
-    if (sysMatch == null) {
-      sysMatch = labelRightPatterns['SYS']!.firstMatch(cleanText);
-    }
-    if (diaMatch == null) {
-      diaMatch = labelRightPatterns['DIA']!.firstMatch(cleanText);
-    }
-    if (pulMatch == null) {
-      pulMatch = labelRightPatterns['PUL']!.firstMatch(cleanText);
-    }
+    sysMatch ??= labelRightPatterns['SYS']!.firstMatch(cleanText);
+    diaMatch ??= labelRightPatterns['DIA']!.firstMatch(cleanText);
+    pulMatch ??= labelRightPatterns['PUL']!.firstMatch(cleanText);
 
     if (sysMatch != null && diaMatch != null) {
       final tempSys = int.parse(sysMatch.group(1)!);
@@ -339,15 +279,18 @@ class BloodPressureOcrService {
           pulse = int.parse(pulMatch.group(1)!);
         }
         confidence = 0.95;
-        debugPrint('✅ Pattern avec labels détecté: SYS=$systolic DIA=$diastolic PUL=$pulse');
+        debugPrint(
+            '✅ Pattern avec labels détecté: SYS=$systolic DIA=$diastolic PUL=$pulse');
       } else {
-        debugPrint('⚠️ Pattern avec labels invalide médicalement: SYS=$tempSys DIA=$tempDia');
+        debugPrint(
+            '⚠️ Pattern avec labels invalide médicalement: SYS=$tempSys DIA=$tempDia');
       }
     }
 
     // Stratégie 2: Chercher un pattern "XXX/YY" ou "XXX/YY/ZZ"
     if (systolic == null) {
-      final slashPattern = RegExp(r'(\d{2,3})\s*[/\\]\s*(\d{2,3})(?:\s*[/\\]\s*(\d{2,3}))?');
+      final slashPattern =
+          RegExp(r'(\d{2,3})\s*[/\\]\s*(\d{2,3})(?:\s*[/\\]\s*(\d{2,3}))?');
       final slashMatch = slashPattern.firstMatch(cleanText);
       if (slashMatch != null) {
         final tempSys = int.parse(slashMatch.group(1)!);
@@ -376,11 +319,21 @@ class BloodPressureOcrService {
       // Regex pour pouls: 40-99
       final pulseRegex = RegExp(r'\b[4-9][0-9]\b');
 
-      final systoleMatches = systoleRegex.allMatches(cleanText).map((m) => int.parse(m.group(0)!)).toList();
-      final diastoleMatches = diastoleRegex.allMatches(cleanText).map((m) => int.parse(m.group(0)!)).toList();
-      final pulseMatches = pulseRegex.allMatches(cleanText).map((m) => int.parse(m.group(0)!)).toList();
+      final systoleMatches = systoleRegex
+          .allMatches(cleanText)
+          .map((m) => int.parse(m.group(0)!))
+          .toList();
+      final diastoleMatches = diastoleRegex
+          .allMatches(cleanText)
+          .map((m) => int.parse(m.group(0)!))
+          .toList();
+      final pulseMatches = pulseRegex
+          .allMatches(cleanText)
+          .map((m) => int.parse(m.group(0)!))
+          .toList();
 
-      debugPrint('🔍 Regex spécifiques - Systole: $systoleMatches, Diastole: $diastoleMatches, Pouls: $pulseMatches');
+      debugPrint(
+          '🔍 Regex spécifiques - Systole: $systoleMatches, Diastole: $diastoleMatches, Pouls: $pulseMatches');
 
       if (systoleMatches.isNotEmpty) {
         systolic = systoleMatches.first;
@@ -405,9 +358,11 @@ class BloodPressureOcrService {
       if (systolic != null && diastolic != null) {
         if (_isValidBloodPressure(systolic, diastolic)) {
           confidence = 0.75;
-          debugPrint('✅ Regex spécifiques: sys=$systolic, dia=$diastolic, pulse=$pulse');
+          debugPrint(
+              '✅ Regex spécifiques: sys=$systolic, dia=$diastolic, pulse=$pulse');
         } else {
-          debugPrint('⚠️ Regex spécifiques invalide médicalement: sys=$systolic, dia=$diastolic');
+          debugPrint(
+              '⚠️ Regex spécifiques invalide médicalement: sys=$systolic, dia=$diastolic');
           systolic = null;
           diastolic = null;
         }
@@ -431,9 +386,11 @@ class BloodPressureOcrService {
         }
 
         confidence = 0.6;
-        debugPrint('✅ Fallback - tri par magnitude: sys=$systolic, dia=$diastolic, pulse=$pulse');
+        debugPrint(
+            '✅ Fallback - tri par magnitude: sys=$systolic, dia=$diastolic, pulse=$pulse');
       } else {
-        debugPrint('⚠️ Fallback invalide médicalement: sys=$tempSys, dia=$tempDia - REJETÉ');
+        debugPrint(
+            '⚠️ Fallback invalide médicalement: sys=$tempSys, dia=$tempDia - REJETÉ');
       }
     }
 
@@ -467,10 +424,12 @@ class BloodPressureOcrService {
     filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}:\d{2}\b'), ' ');
 
     // Pattern 2: Heures avec AM/PM (8:30 AM, 12:45 PM, etc.)
-    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\b'), ' ');
+    filtered = filtered.replaceAll(
+        RegExp(r'\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)\b'), ' ');
 
     // Pattern 3: Heures avec 'h' (8h30, 12h45, etc.)
-    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}h\d{2}\b', caseSensitive: false), ' ');
+    filtered = filtered.replaceAll(
+        RegExp(r'\b\d{1,2}h\d{2}\b', caseSensitive: false), ' ');
 
     // Pattern 4: Durée en secondes (30", 45", etc.)
     filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}"'), ' ');
@@ -479,15 +438,18 @@ class BloodPressureOcrService {
     filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}\.(?!\d)'), ' ');
 
     // Pattern 6: Dates avec points (10.08, 10.08., 10.08.2024, etc.)
-    filtered = filtered.replaceAll(RegExp(r'\b\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?\b'), ' ');
+    filtered = filtered.replaceAll(
+        RegExp(r'\b\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?\b'), ' ');
 
     // Pattern 7: Dates avec slashes (10/08, 10/08/24, 10/08/2024, etc.)
     // ATTENTION: On doit éviter de supprimer les patterns de tension comme 120/80
     // On vérifie que les nombres sont petits (<= 31 pour jours/mois)
-    filtered = filtered.replaceAll(RegExp(r'\b([0-2]?\d|3[01])/([0-1]?\d|1[0-2])(?:/\d{2,4})?\b'), ' ');
+    filtered = filtered.replaceAll(
+        RegExp(r'\b([0-2]?\d|3[01])/([0-1]?\d|1[0-2])(?:/\d{2,4})?\b'), ' ');
 
     // Pattern 8: Dates avec tirets (10-08, 10-08-24, etc.)
-    filtered = filtered.replaceAll(RegExp(r'\b([0-2]?\d|3[01])-([0-1]?\d|1[0-2])(?:-\d{2,4})?\b'), ' ');
+    filtered = filtered.replaceAll(
+        RegExp(r'\b([0-2]?\d|3[01])-([0-1]?\d|1[0-2])(?:-\d{2,4})?\b'), ' ');
 
     // Nettoyer les espaces multiples créés par les remplacements
     filtered = filtered.replaceAll(RegExp(r'\s+'), ' ').trim();

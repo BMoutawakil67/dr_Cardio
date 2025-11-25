@@ -384,7 +384,7 @@ class _DoctorLoginScreenModernState extends State<DoctorLoginScreenModern> {
                                   _rememberMe = value ?? false;
                                 });
                               },
-                              fillColor: MaterialStateProperty.all(Colors.white),
+                              fillColor: WidgetStateProperty.all(Colors.white),
                               checkColor: AppTheme.secondaryRed,
                             ),
                             const Text(

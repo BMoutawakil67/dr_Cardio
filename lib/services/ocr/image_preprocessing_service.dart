@@ -27,19 +27,21 @@ class ImagePreprocessingService {
         return imagePath; // Retourner l'image originale en cas d'échec
       }
 
-      debugPrint('✅ Preprocessing: Image chargée (${image.width}x${image.height})');
+      debugPrint(
+          '✅ Preprocessing: Image chargée (${image.width}x${image.height})');
 
       // 2. Conversion en niveaux de gris
       debugPrint('🔄 Preprocessing: Conversion en niveaux de gris...');
       image = img.grayscale(image);
 
       // 3. Augmentation du contraste et luminosité (pour faire ressortir les chiffres LCD)
-      debugPrint('🔄 Preprocessing: Augmentation du contraste et luminosité...');
+      debugPrint(
+          '🔄 Preprocessing: Augmentation du contraste et luminosité...');
       image = img.adjustColor(image,
-        contrast: 1.2,  // Augmente le contraste de 20%
-        brightness: 1.1, // Augmente la luminosité de 10%
-        saturation: 0    // Désaturation complète pour le N&B
-      );
+          contrast: 1.2, // Augmente le contraste de 20%
+          brightness: 1.1, // Augmente la luminosité de 10%
+          saturation: 0 // Désaturation complète pour le N&B
+          );
 
       // 6. Binarisation (seuil adaptatif pour LCD)
       debugPrint('🔄 Preprocessing: Binarisation...');
@@ -48,7 +50,8 @@ class ImagePreprocessingService {
 
       // 7. Sauvegarder l'image prétraitée
       final tempDir = await getTemporaryDirectory();
-      final processedPath = '${tempDir.path}/ocr_preprocessed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final processedPath =
+          '${tempDir.path}/ocr_preprocessed_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       debugPrint('💾 Preprocessing: Sauvegarde de l\'image prétraitée...');
       await File(processedPath).writeAsBytes(img.encodeJpg(image, quality: 95));
@@ -69,9 +72,9 @@ class ImagePreprocessingService {
         final luminance = img.getLuminance(pixel);
 
         // Si le pixel est plus clair que le seuil, le rendre blanc, sinon noir
-        final newColor = luminance > threshold ?
-          img.ColorRgb8(255, 255, 255) :
-          img.ColorRgb8(0, 0, 0);
+        final newColor = luminance > threshold
+            ? img.ColorRgb8(255, 255, 255)
+            : img.ColorRgb8(0, 0, 0);
 
         image.setPixel(x, y, newColor);
       }
@@ -98,7 +101,8 @@ class ImagePreprocessingService {
       final croppedLcd = _detectAndCropLcdRegion(image);
 
       if (croppedLcd == null) {
-        debugPrint('⚠️ Pas de zone LCD détectée, traitement sur image complète');
+        debugPrint(
+            '⚠️ Pas de zone LCD détectée, traitement sur image complète');
         // Si pas de zone détectée, continuer avec l'image complète
       } else {
         image = croppedLcd;
@@ -112,10 +116,9 @@ class ImagePreprocessingService {
       if (image.width < 800) {
         debugPrint('🔄 Agrandissement 2x de la zone LCD...');
         image = img.copyResize(image,
-          width: image.width * 2,
-          height: image.height * 2,
-          interpolation: img.Interpolation.cubic
-        );
+            width: image.width * 2,
+            height: image.height * 2,
+            interpolation: img.Interpolation.cubic);
       }
 
       // 4. Netteté
@@ -125,10 +128,9 @@ class ImagePreprocessingService {
       // 5. Contraste et luminosité agressifs
       debugPrint('🔄 Ajustement contraste/luminosité...');
       image = img.adjustColor(image,
-        contrast: 1.8,    // Contraste très élevé
-        brightness: 1.3,  // Luminosité élevée
-        saturation: 0
-      );
+          contrast: 1.8, // Contraste très élevé
+          brightness: 1.3, // Luminosité élevée
+          saturation: 0);
 
       // 6. Inversion si nécessaire
       final avgLuminance = _getAverageLuminance(image);
@@ -149,7 +151,8 @@ class ImagePreprocessingService {
 
       // Sauvegarde
       final tempDir = await getTemporaryDirectory();
-      final processedPath = '${tempDir.path}/ocr_lcd_isolated_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final processedPath =
+          '${tempDir.path}/ocr_lcd_isolated_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await File(processedPath).writeAsBytes(img.encodeJpg(image, quality: 95));
 
       debugPrint('✅ Preprocessing LCD isolé terminé: $processedPath');
@@ -177,17 +180,17 @@ class ImagePreprocessingService {
 
       // Contraste et luminosité plus agressifs
       image = img.adjustColor(image,
-        contrast: 1.5,    // Augmente le contraste de 50%
-        brightness: 1.2,  // Augmente la luminosité de 20%
-        saturation: 0
-      );
+          contrast: 1.5, // Augmente le contraste de 50%
+          brightness: 1.2, // Augmente la luminosité de 20%
+          saturation: 0);
 
       // Seuil plus bas pour capturer les segments LCD sombres
       image = _applyThreshold(image, threshold: 90);
 
       // Sauvegarde
       final tempDir = await getTemporaryDirectory();
-      final processedPath = '${tempDir.path}/ocr_adaptive_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final processedPath =
+          '${tempDir.path}/ocr_adaptive_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await File(processedPath).writeAsBytes(img.encodeJpg(image, quality: 95));
 
       debugPrint('✅ Preprocessing adaptatif terminé');
@@ -202,7 +205,7 @@ class ImagePreprocessingService {
   /// Utilise des techniques avancées pour faire ressortir les segments LCD
   Future<String> preprocessForLcdDisplay(String imagePath) async {
     try {
-      debugPrint('🖼️ Preprocessing LCD: Début...');
+      debugPrint('🖼️ Preprocessing LCD (Nouvelle Approche): Début...');
 
       final bytes = await File(imagePath).readAsBytes();
       img.Image? image = img.decodeImage(bytes);
@@ -213,73 +216,53 @@ class ImagePreprocessingService {
 
       debugPrint('✅ Image chargée: ${image.width}x${image.height}');
 
-      // 1. Redimensionner intelligemment l'image pour optimiser OCR et mémoire
-      final maxDimension = image.width > image.height ? image.width : image.height;
-      final minDimension = image.width < image.height ? image.width : image.height;
-
-      if (maxDimension < 800) {
-        // Image petite : upscaler 2x pour améliorer la détection
-        debugPrint('🔄 Image petite ($maxDimension px) - Agrandissement 2x...');
-        image = img.copyResize(image,
-          width: image.width * 2,
-          height: image.height * 2,
-          interpolation: img.Interpolation.cubic
-        );
-      } else if (maxDimension > 1600) {
-        // Image trop grande : réduire pour économiser la mémoire
-        final scale = 1600 / maxDimension;
-        debugPrint('🔄 Image grande ($maxDimension px) - Réduction à 1600px (${(scale * 100).toStringAsFixed(0)}%)...');
-        image = img.copyResize(image,
-          width: (image.width * scale).toInt(),
-          height: (image.height * scale).toInt(),
-          interpolation: img.Interpolation.average
-        );
-      } else {
-        debugPrint('✅ Taille optimale ($maxDimension px) - Pas de redimensionnement');
-      }
-
-      // 2. Niveaux de gris
+      // 1. Niveaux de gris (étape sûre)
       debugPrint('🔄 Conversion en niveaux de gris...');
       image = img.grayscale(image);
 
-      // 3. Netteté (sharpening) pour renforcer les bords des segments LCD
+      // 2. Augmentation simple du contraste (étape la plus importante)
+      // On utilise une valeur de contraste plus forte mais sans toucher à la luminosité
+      // pour éviter de "brûler" l'image.
+      debugPrint('🔄 Ajustement du contraste...');
+      image = img.adjustColor(
+        image,
+        contrast: 2.0, // Augmente le contraste de 100%
+      );
+
+      // Les étapes suivantes sont désactivées car elles sont potentiellement destructrices
+      /*
+      // Netteté (sharpening)
       debugPrint('🔄 Augmentation de la netteté...');
       image = _applySharpen(image);
 
-      // 4. Augmentation agressive du contraste et luminosité pour LCD
-      debugPrint('🔄 Ajustement contraste/luminosité...');
-      image = img.adjustColor(image,
-        contrast: 1.6,    // Augmente le contraste de 60%
-        brightness: 1.2,  // Augmente la luminosité de 20%
-        saturation: 0     // Désaturation complète
-      );
-
-      // 5. Inversion si l'image a un fond sombre (segments clairs sur fond sombre)
+      // Inversion si l'image a un fond sombre
       final avgLuminance = _getAverageLuminance(image);
       debugPrint('📊 Luminance moyenne: $avgLuminance');
-
       if (avgLuminance < 100) {
         debugPrint('🔄 Inversion des couleurs (fond sombre détecté)');
         image = img.invert(image);
       }
 
-      // 6. Binarisation optimisée pour LCD (seuil plus strict)
+      // Binarisation (seuil) - TRES RISQUÉ
       debugPrint('🔄 Binarisation...');
       image = _applyThreshold(image, threshold: 110);
 
-      // 7. Morphologie: Dilate pour renforcer les segments (optionnel)
+      // Morphologie: Dilate pour renforcer les segments
       debugPrint('🔄 Renforcement des segments LCD...');
       image = _applyDilate(image, iterations: 1);
+      */
 
       // Sauvegarde
       final tempDir = await getTemporaryDirectory();
-      final processedPath = '${tempDir.path}/ocr_lcd_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final processedPath =
+          '${tempDir.path}/ocr_lcd_simplified_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await File(processedPath).writeAsBytes(img.encodeJpg(image, quality: 95));
 
-      debugPrint('✅ Preprocessing LCD terminé: $processedPath');
+      debugPrint(
+          '✅ Preprocessing LCD (Nouvelle Approche) terminé: $processedPath');
       return processedPath;
     } catch (e) {
-      debugPrint('❌ Erreur preprocessing LCD: $e');
+      debugPrint('❌ Erreur preprocessing LCD (Nouvelle Approche): $e');
       return imagePath;
     }
   }
@@ -309,7 +292,9 @@ class ImagePreprocessingService {
         final rightLum = img.getLuminance(right);
 
         // Formule: 5*center - top - bottom - left - right
-        final newLum = (5 * centerLum - topLum - bottomLum - leftLum - rightLum).clamp(0, 255).toInt();
+        final newLum = (5 * centerLum - topLum - bottomLum - leftLum - rightLum)
+            .clamp(0, 255)
+            .toInt();
 
         // Appliquer la nouvelle luminance
         result.setPixel(x, y, img.ColorRgb8(newLum, newLum, newLum));
@@ -387,11 +372,14 @@ class ImagePreprocessingService {
     // Analyser l'image par blocs
     for (int y = 0; y < height - blockSize; y += blockSize ~/ 2) {
       for (int x = 0; x < width - blockSize; x += blockSize ~/ 2) {
-        final avgLum = _getBlockAverageLuminance(grayImage, x, y, blockSize, blockSize);
+        final avgLum =
+            _getBlockAverageLuminance(grayImage, x, y, blockSize, blockSize);
 
         // Détecter les zones sombres (écran LCD a fond sombre/gris)
-        if (avgLum < 130) { // Seuil pour zones sombres
-          darkRegions.add(Rectangle(x.toDouble(), y.toDouble(), blockSize.toDouble(), blockSize.toDouble()));
+        if (avgLum < 130) {
+          // Seuil pour zones sombres
+          darkRegions.add(Rectangle(x.toDouble(), y.toDouble(),
+              blockSize.toDouble(), blockSize.toDouble()));
         }
       }
     }
@@ -414,21 +402,23 @@ class ImagePreprocessingService {
     final cropX = (mergedRegion.x - margin).clamp(0, width - 1);
     final cropY = (mergedRegion.y - margin).clamp(0, height - 1);
     final cropWidth = (mergedRegion.width + margin * 2).clamp(1, width - cropX);
-    final cropHeight = (mergedRegion.height + margin * 2).clamp(1, height - cropY);
+    final cropHeight =
+        (mergedRegion.height + margin * 2).clamp(1, height - cropY);
 
-    debugPrint('✅ Zone LCD détectée: x=$cropX, y=$cropY, w=$cropWidth, h=$cropHeight');
+    debugPrint(
+        '✅ Zone LCD détectée: x=$cropX, y=$cropY, w=$cropWidth, h=$cropHeight');
 
     // Recadrer l'image sur la zone LCD
     return img.copyCrop(image,
-      x: cropX.toInt(),
-      y: cropY.toInt(),
-      width: cropWidth.toInt(),
-      height: cropHeight.toInt()
-    );
+        x: cropX.toInt(),
+        y: cropY.toInt(),
+        width: cropWidth.toInt(),
+        height: cropHeight.toInt());
   }
 
   /// Calcule la luminance moyenne d'un bloc de l'image
-  double _getBlockAverageLuminance(img.Image image, int startX, int startY, int blockWidth, int blockHeight) {
+  double _getBlockAverageLuminance(img.Image image, int startX, int startY,
+      int blockWidth, int blockHeight) {
     double total = 0;
     int count = 0;
 

@@ -51,7 +51,6 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
     _systolicController.dispose();
     _diastolicController.dispose();
     _pulseController.dispose();
-    _ocrService.dispose();
     super.dispose();
   }
 
@@ -427,7 +426,8 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.lightbulb_outline, color: Colors.blue.shade700, size: 20),
+                        Icon(Icons.lightbulb_outline,
+                            color: Colors.blue.shade700, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'Conseils pour améliorer la détection',
@@ -439,7 +439,8 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildTipItem('📸 Cadrez uniquement l\'écran LCD du tensiomètre'),
+                    _buildTipItem(
+                        '📸 Cadrez uniquement l\'écran LCD du tensiomètre'),
                     _buildTipItem('💡 Bon éclairage sans reflets'),
                     _buildTipItem('📏 Distance: 15-20cm de l\'écran'),
                     _buildTipItem('🎯 Photo nette et bien cadrée'),
@@ -570,7 +571,7 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
 
             // Bouton Enregistrer
             ElevatedButton(
-              onPressed: () => _saveMeasure(),
+              onPressed: _saveMedicalNote,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -670,76 +671,98 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
   }
 
   Future<void> _capturePhoto() async {
+    
+
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-      );
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
 
       if (image != null) {
-        await _processImage(image);
+        _capturedImage = image;
+
+        setState(() {
+          _isProcessing = true;
+          _processingStatus = 'Analyse de l\'image...';
+          _processingProgress = 0.5;
+        });
+
+        final result = await _ocrService.processImage(image.path);
+
+        setState(() {
+          _ocrResult = result;
+          if (result.systolic != null) {
+            _systolicController.text = result.systolic.toString();
+          }
+          if (result.diastolic != null) {
+            _diastolicController.text = result.diastolic.toString();
+          }
+          if (result.pulse != null) {
+            _pulseController.text = result.pulse.toString();
+          }
+          _processingStatus = 'Analyse terminée !';
+          _processingProgress = 1.0;
+          _isProcessing = false;
+          _isValidated = true; // Passer à l'écran de validation
+        });
+      } else {
+        setState(() {
+          _isProcessing = false; // Annuler si aucune image n'est prise
+        });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Erreur lors de la capture: $e'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _processImage(XFile image) async {
-    setState(() {
-      _capturedImage = image;
-      _isProcessing = true;
-      _processingProgress = 0.1;
-      _processingStatus = 'Chargement de l\'image...';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    if (!mounted) return;
-    setState(() {
-      _processingProgress = 0.3;
-      _processingStatus = 'Analyse OCR en cours...';
-    });
-
-    // Appel réel au service OCR
-    final result = await _ocrService.extractBloodPressure(image.path);
-
-    if (!mounted) return;
-    setState(() {
-      _processingProgress = 0.8;
-      _processingStatus = 'Extraction des valeurs...';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    if (!mounted) return;
-    setState(() {
-      _ocrResult = result;
-      _processingProgress = 1.0;
-      _processingStatus = 'Terminé!';
-
-      // Remplir les contrôleurs avec les valeurs détectées
-      _systolicController.text = result.systolic?.toString() ?? '';
-      _diastolicController.text = result.diastolic?.toString() ?? '';
-      _pulseController.text = result.pulse?.toString() ?? '';
-    });
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (mounted) {
       setState(() {
         _isProcessing = false;
-        _isValidated = true;
+        // Afficher une erreur à l'utilisateur
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'OCR: $e')),
+        );
       });
     }
   }
 
+  Future<void> _saveMedicalNote() async {
+    final patientId =
+        'patient1'; // TODO: Remplacer par la vraie logique de récupération de l'ID patient
+
+    if (patientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur: Patient non identifié.')),
+      );
+      return;
+    }
+
+    final medicalNote = MedicalNote(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      patientId: patientId,
+      doctorId: 'doctor1', // TODO: Remplacer par le vrai ID du docteur
+      date: _selectedDate.add(Duration(
+        hours: _selectedTime.hour,
+        minutes: _selectedTime.minute,
+      )),
+      systolic: int.tryParse(_systolicController.text) ?? 0,
+      diastolic: int.tryParse(_diastolicController.text) ?? 0,
+      heartRate: int.tryParse(_pulseController.text) ?? 0,
+      context: 'Prise de tension via OCR',
+      photoUrl: _capturedImage?.path,
+    );
+
+    try {
+      await _repository.addMedicalNote(medicalNote);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Note médicale enregistrée avec succès !')),
+      );
+
+      // Naviguer vers le tableau de bord du patient après la sauvegarde
+      Navigator.of(context).pushReplacementNamed(AppRoutes.patientDashboard);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la sauvegarde: $e')),
+      );
+    }
+  }
+
+  // Écran de traitement
   Future<void> _openGallery() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -760,5 +783,33 @@ class _RecordPressurePhotoScreenState extends State<RecordPressurePhotoScreen> {
         );
       }
     }
+  }
+
+  Future<void> _processImage(XFile image) async {
+    setState(() {
+      _capturedImage = image;
+      _isProcessing = true;
+      _processingStatus = 'Analyse de l\'image...';
+      _processingProgress = 0.5;
+    });
+
+    final result = await _ocrService.processImage(image.path);
+
+    setState(() {
+      _ocrResult = result;
+      if (result.systolic != null) {
+        _systolicController.text = result.systolic.toString();
+      }
+      if (result.diastolic != null) {
+        _diastolicController.text = result.diastolic.toString();
+      }
+      if (result.pulse != null) {
+        _pulseController.text = result.pulse.toString();
+      }
+      _processingStatus = 'Analyse terminée !';
+      _processingProgress = 1.0;
+      _isProcessing = false;
+      _isValidated = true; // Passer à l'écran de validation
+    });
   }
 }

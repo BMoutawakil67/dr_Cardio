@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:dr_cardio/config.dart';
 
-/// Représente le résultat structuré du processus OCR.
 class BloodPressureOcrResult {
   final int? systolic;
   final int? diastolic;
@@ -24,40 +22,23 @@ class BloodPressureOcrResult {
     this.rawText = '',
   });
 
-  factory BloodPressureOcrResult.fromOcrResponse(String responseBody) {
-    try {
-      final data = jsonDecode(responseBody) as Map<String, dynamic>;
-      return BloodPressureOcrResult(
-        rawText: responseBody,
-        systolic: data['systolic'] as int?,
-        diastolic: data['diastolic'] as int?,
-        pulse: data['pulse'] as int?,
-      );
-    } catch (e) {
-      return BloodPressureOcrResult(
-        rawText: responseBody,
-        error: 'Erreur de parsing JSON: $e',
-      );
-    }
+  factory BloodPressureOcrResult.fromJson(Map<String, dynamic> json) {
+    return BloodPressureOcrResult(
+      systolic: _parseInt(json['systolic']),
+      diastolic: _parseInt(json['diastolic']),
+      pulse: _parseInt(json['pulse']),
+      isValid: json['systolic'] != null && json['diastolic'] != null,
+      confidence: 0.95,
+      rawText: json.toString(),
+    );
   }
 
-  BloodPressureOcrResult copyWith({
-    int? systolic,
-    int? diastolic,
-    int? pulse,
-    double? confidence,
-    String? rawText,
-    String? error,
-    bool clearError = false,
-  }) {
-    return BloodPressureOcrResult(
-      systolic: systolic ?? this.systolic,
-      diastolic: diastolic ?? this.diastolic,
-      pulse: pulse ?? this.pulse,
-      confidence: confidence ?? this.confidence,
-      rawText: rawText ?? this.rawText,
-      error: clearError ? null : error ?? this.error,
-    );
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   @override
@@ -69,11 +50,9 @@ class BloodPressureOcrResult {
   }
 }
 
-/// Service pour extraire les données de tension artérielle à partir d'une image.
 class BloodPressureOcrService {
-  static const String _openAiApiUrl = 'https://api.openai.com/v1/responses';
 
-/*
+  /*
   Future<BloodPressureOcrResult> processImageOpenAI(String imagePath) async {
     if (openAiApiKey == 'YOUR_OPENAI_API_KEY') {
       return BloodPressureOcrResult(
@@ -129,80 +108,164 @@ class BloodPressureOcrService {
     }
   }
 */
-
+  
   Future<BloodPressureOcrResult> processImage(String imagePath) async {
-    try {
-      var request = http.MultipartRequest(
-          'POST', Uri.parse('https://api.deepsee-ocr.ai/v1/ocr'));
-      request.headers['Authorization'] = 'Bearer $deepSeekApiKey';
-      request.files.add(await http.MultipartFile.fromPath(
-        'file',
-        imagePath,
-        contentType: MediaType('image', 'png'),
-      ));
-      request.fields['prompt'] = 'Extraire systole, diastol et pouls';
+    // Vérifier que la clé API est configurée
+    if (deepSeekApiKey.isEmpty || deepSeekApiKey == 'YOUR_DEEPSEEK_API_KEY') {
+      return BloodPressureOcrResult(
+        error: 'Clé API DeepSeek non configurée dans lib/config.dart',
+      );
+    }
 
-      var streamed = await request.send();
-      var response = await http.Response.fromStream(streamed);
+    try {
+      final base64Image = await _imageToBase64(imagePath);
+      
+      // Détection du type MIME
+      final mimeType = _getMimeType(imagePath);
+
+      // Format correct pour DeepSeek - texte seulement avec image en base64 dans le prompt
+      final response = await http.post(
+        Uri.parse('https://api.deepseek.com/v1/chat/completions'),
+        headers: {
+          'Authorization': 'Bearer $deepSeekApiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': 'deepseek-chat',
+          'messages': [
+            {
+              'role': 'user',
+              'content': 'Voici une image d\'un tensiomètre: data:$mimeType;base64,$base64Image\n\nExtrayez les valeurs de tension artérielle (systolique, diastolique) et le pouls. Répondez UNIQUEMENT en format JSON: {"systolic": nombre, "diastolic": nombre, "pulse": nombre}. Si une valeur n\'est pas lisible, utilisez null.'
+            }
+          ],
+          'max_tokens': 1000,
+          'temperature': 0.1
+        }),
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        // parser les valeurs systole, diastol et pouls selon la réponse
+        return _parseDeepSeekResponse(response.body);
+      } else if (response.statusCode == 401) {
         return BloodPressureOcrResult(
-          systolic: json["systol"],
-          diastolic: json["diastol"],
-          pulse: json["pouls"],
+          error: 'Clé API DeepSeek invalide ou expirée',
+        );
+      } else if (response.statusCode == 429) {
+        return BloodPressureOcrResult(
+          error: 'Quota API dépassé ou limite de requêtes atteinte',
         );
       } else {
         return BloodPressureOcrResult(
-          error: 'Erreur DeepSeek: ${response.statusCode} - ${response.body}',
+          error: 'Erreur API DeepSeek: ${response.statusCode} - ${response.body}',
         );
       }
     } catch (e) {
+      print('Erreur complète: $e');
       return BloodPressureOcrResult(
-        error: "Erreur lors de l'appel à DeepSeek: $e",
+        error: "Erreur de connexion: ${e.toString()}",
       );
     }
   }
 
-  /// Convertit un fichier image en une chaîne Base64.
-  Future<String> _imageToBase64(String imagePath) async {
-    final imageBytes = await File(imagePath).readAsBytes();
-    return base64Encode(imageBytes);
+  BloodPressureOcrResult _parseDeepSeekResponse(String responseBody) {
+    try {
+      final decoded = jsonDecode(responseBody);
+      
+      // Vérifier la structure de réponse DeepSeek
+      if (decoded['choices'] == null || decoded['choices'].isEmpty) {
+        return BloodPressureOcrResult(
+          error: 'Format de réponse API invalide: pas de choix disponible',
+          rawText: responseBody,
+        );
+      }
+
+      final message = decoded['choices'][0]['message'];
+      final content = message['content'] as String;
+
+      // Nettoyer le contenu (enlever les ```json etc.)
+      String cleanContent = content.trim();
+      if (cleanContent.startsWith('```json')) {
+        cleanContent = cleanContent.substring(7);
+      }
+      if (cleanContent.endsWith('```')) {
+        cleanContent = cleanContent.substring(0, cleanContent.length - 3);
+      }
+      cleanContent = cleanContent.trim();
+
+      // Parser le JSON
+      final extractedData = jsonDecode(cleanContent) as Map<String, dynamic>;
+      
+      return BloodPressureOcrResult.fromJson(extractedData);
+
+    } catch (e) {
+      // Si le parsing JSON échoue, essayer d'extraire les nombres du texte
+      return _extractNumbersFromText(responseBody);
+    }
   }
 
-  BloodPressureOcrResult _parseResponse(String responseBody) {
+  BloodPressureOcrResult _extractNumbersFromText(String responseBody) {
     try {
       final decoded = jsonDecode(responseBody);
       final content = decoded['choices'][0]['message']['content'] as String;
-
-      final jsonContent = jsonDecode(content) as Map<String, dynamic>;
-
-      final systolic = jsonContent['systolic'] as int?;
-      final diastolic = jsonContent['diastolic'] as int?;
-      final pulse = jsonContent['pulse'] as int?;
-
-      final bool isValid =
-          systolic != null && diastolic != null && pulse != null;
+      
+      // Expressions régulières pour trouver les nombres
+      final systolicMatch = RegExp(r'systolic[":\s]+(\d+)').firstMatch(content);
+      final diastolicMatch = RegExp(r'diastolic[":\s]+(\d+)').firstMatch(content);
+      final pulseMatch = RegExp(r'pulse[":\s]+(\d+)').firstMatch(content);
 
       return BloodPressureOcrResult(
-        systolic: systolic,
-        diastolic: diastolic,
-        pulse: pulse,
+        systolic: systolicMatch != null ? int.tryParse(systolicMatch.group(1)!) : null,
+        diastolic: diastolicMatch != null ? int.tryParse(diastolicMatch.group(1)!) : null,
+        pulse: pulseMatch != null ? int.tryParse(pulseMatch.group(1)!) : null,
         rawText: content,
-        isValid: isValid,
-        confidence: isValid ? 0.95 : 0.5,
+        isValid: systolicMatch != null && diastolicMatch != null,
+        confidence: 0.7,
       );
     } catch (e) {
       return BloodPressureOcrResult(
-        error: 'Erreur de parsing: ${e.toString()}',
-        rawText:
-            responseBody, // En cas d'erreur, le texte brut est le corps de la réponse
+        error: 'Erreur d\'extraction: ${e.toString()}',
+        rawText: responseBody,
       );
+    }
+  }
+
+  /// Convertit un fichier image en Base64
+  Future<String> _imageToBase64(String imagePath) async {
+    try {
+      final imageFile = File(imagePath);
+      if (!await imageFile.exists()) {
+        throw Exception('Fichier image non trouvé: $imagePath');
+      }
+      final imageBytes = await imageFile.readAsBytes();
+      return base64Encode(imageBytes);
+    } catch (e) {
+      throw Exception('Erreur conversion image: $e');
+    }
+  }
+
+  /// Détermine le type MIME de l'image
+  String _getMimeType(String imagePath) {
+    final extension = imagePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'bmp':
+        return 'image/bmp';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
     }
   }
 
   void dispose() {
-    // Rien à libérer pour l'instant.
+    // Rien à libérer
   }
 }
